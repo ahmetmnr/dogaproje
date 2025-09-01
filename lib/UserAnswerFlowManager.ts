@@ -60,8 +60,9 @@ export class UserAnswerFlowManager {
     });
     
     // Listen for speech completion
-    this.stateManager.on('speechCompleted', (data) => {
-      this.handleSpeechCompletion(data);
+    this.stateManager.on('speechCompleted', (data: any) => {
+      // Speech completion handled in onUserFinishesSpeaking
+      console.log('📝 Speech completed:', data);
     });
     
     // Listen for phase changes

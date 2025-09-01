@@ -152,7 +152,7 @@ export class IntegratedToolCallManager {
           userAnswer: state.currentTranscript,
           confidence: context.transcriptConfidence,
           responseTime: state.responseTime,
-          questionId: context.currentQuestion.id
+          questionId: context.currentQuestion?.id
         },
         reason: 'User provided answer with sufficient confidence'
       };

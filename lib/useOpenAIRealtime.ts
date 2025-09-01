@@ -419,7 +419,7 @@ export function useOpenAIRealtime({
           
           // Update unified state
           if (stateManagerRef.current) {
-            stateManagerRef.current.updateWebRTCState(state);
+            stateManagerRef.current.updateWebRTCState(state as RTCPeerConnectionState);
           }
           
           if (state === 'connected') {
@@ -786,7 +786,7 @@ VAD eşiği: ${turnDetectionConfig.threshold}`,
         onGameFinish();
         
         // Eğer backend'den disconnect sinyali gelirse hemen kes
-        if (result.shouldDisconnect) {
+        if ('shouldDisconnect' in result && (result as any).shouldDisconnect) {
           console.log('🔌 Backend requested disconnect, closing connection...');
           setTimeout(() => {
             disconnect();

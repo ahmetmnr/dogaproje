@@ -78,7 +78,6 @@ export class ComprehensiveSessionManager {
       userId,
       tabId: currentTabId,
       startTime: new Date(),
-      lastActivity: new Date(),
       isActive: true
     });
     
@@ -101,11 +100,11 @@ export class ComprehensiveSessionManager {
   private getActiveSessionsForUser(userId: string): SessionData[] {
     const sessions: SessionData[] = [];
     
-    for (const session of this.activeSessions.values()) {
+    this.activeSessions.forEach((session) => {
       if (session.userId === userId && session.isActive) {
         sessions.push(session);
       }
-    }
+    });
     
     return sessions;
   }
@@ -569,12 +568,17 @@ export class ComprehensiveSessionManager {
     const maxInactivity = 30 * 60 * 1000; // 30 dakika
     
     // Clean up inactive sessions
-    for (const [sessionId, session] of this.activeSessions.entries()) {
+    const inactiveSessions: string[] = [];
+    this.activeSessions.forEach((session, sessionId) => {
       if (now - session.lastActivity.getTime() > maxInactivity) {
-        console.log(`🧹 Auto-cleaning inactive session: ${sessionId}`);
-        this.cleanupSession(sessionId);
+        inactiveSessions.push(sessionId);
       }
-    }
+    });
+    
+    inactiveSessions.forEach(sessionId => {
+      console.log(`🧹 Auto-cleaning inactive session: ${sessionId}`);
+      this.cleanupSession(sessionId);
+    });
     
     // Clean up old localStorage entries
     if (typeof window !== 'undefined') {

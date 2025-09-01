@@ -2,30 +2,137 @@ import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { GameState, Question, QnAItem, ScoreEntry, ToolCallResult } from '@/types/quiz';
+import OpenAI from 'openai';
 
-// Akıllı cevap filtreleme fonksiyonu
+// OpenAI client initialization
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// LLM ile çoktan seçmeli cevap değerlendirmesi
+async function evaluateMCQAnswerWithLLM(question: Question, userAnswer: string): Promise<boolean> {
+  const systemPrompt = `Sen bir Türkçe çoktan seçmeli sınav değerlendirme uzmanısın. 
+
+GÖREVIN:
+1. Kullanıcının cevabının hangi seçeneği işaret ettiğini belirle
+2. Bu seçeneğin doğru olup olmadığını kontrol et
+3. Sadece "true" (doğru) veya "false" (yanlış) olarak yanıtla
+
+DEĞERLENDIRME KRITERLERI:
+- Kullanıcı harf (A, B, C, D) söyleyebilir
+- Kullanıcı seçenek içeriğini söyleyebilir
+- Yaklaşık/benzer ifadeler kabul edilebilir
+- Birden fazla seçenek işaret ederse yanlış
+- Anlamsız/ilgisiz cevaplar yanlış
+
+ÖRNEKLER:
+Seçenekler: A) Temel Seviye B) Temel, Orta ve İleri Seviye C) Sadece İleri
+Doğru: B
+- "B" → true
+- "temel orta ve ileri" → true  
+- "üç seviye var" → true
+- "A" → false
+- "bilmiyorum" → false`;
+
+  const optionsText = question.options?.map((opt, idx) => `${String.fromCharCode(65 + idx)}) ${opt.replace(/^[A-D]\)\s*/, '')}`).join('\n') || '';
+  
+  const userPrompt = `SORU: ${question.question}
+
+SEÇENEKLER:
+${optionsText}
+
+DOĞRU CEVAP: ${question.correct}
+
+KULLANICI CEVABI: ${userAnswer}
+
+DEĞERLENDIRME:`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-5-nano',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      max_completion_tokens: 10
+    });
+
+    const result = response.choices[0]?.message?.content?.trim().toLowerCase();
+    return result === 'true';
+    
+  } catch (error) {
+    console.error('MCQ LLM evaluation error:', error);
+    throw error;
+  }
+}
+
+// LLM ile açık uçlu cevap değerlendirmesi
+async function evaluateOpenAnswerWithLLM(question: Question, userAnswer: string): Promise<boolean> {
+  const systemPrompt = `Sen bir Türkçe sınav değerlendirme uzmanısın. Verilen soruya kullanıcının verdiği cevabı değerlendir.
+
+GÖREVIN:
+1. Kullanıcının cevabının soruya uygun olup olmadığını kontrol et
+2. Cevabın doğruluğunu değerlendir
+3. Sadece "true" (doğru) veya "false" (yanlış) olarak yanıtla
+
+DEĞERLENDIRME KRITERLERI:
+- Cevap soruyla ilgili olmalı
+- Temel bilgiler doğru olmalı
+- Yaklaşık/benzer cevaplar da kabul edilebilir
+- Tamamen yanlış bilgiler kabul edilmez
+- Anlamsız/ilgisiz cevaplar kabul edilmez
+
+ÖRNEKLER:
+Soru: "Sıfır Atık Vakfı hangi yıl kuruldu?"
+- "2023" → true
+- "2022" → false (yanlış yıl)
+- "iki bin yirmi üç" → true
+- "bilmiyorum" → false
+- "geçen yıl" → false (belirsiz)`;
+
+  const userPrompt = `SORU: ${question.question}
+
+KULLANICI CEVABI: ${userAnswer}
+
+DOĞRU CEVAP İPUCU: ${question.miniCorpus}
+
+DEĞERLENDIRME:`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-5-nano',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      max_completion_tokens: 10
+    });
+
+    const result = response.choices[0]?.message?.content?.trim().toLowerCase();
+    return result === 'true';
+    
+  } catch (error) {
+    console.error('LLM evaluation error:', error);
+    throw error;
+  }
+}
+
+// Hybrid akıllı cevap filtreleme fonksiyonu
 function isValidQuestionAnswer(transcript: string, question: Question): { valid: boolean; message?: string } {
   const lowerTranscript = transcript.toLowerCase().trim();
   
-  // Çok kısa cevaplar
+  // 1. Temel kontroller (hızlı)
   if (lowerTranscript.length < 2) {
     return { valid: false, message: "Cevabınız çok kısa, lütfen tekrar söyleyin" };
   }
   
-  // Genel konuşma ifadeleri (soru cevabı değil)
-  const conversationalPhrases = [
-    'merhaba', 'selam', 'nasılsın', 'ne yapıyorsun', 'naber',
-    'ben', 'sen', 'biz', 'onlar', 'şey', 'işte', 'yani',
-    'tamam', 'peki', 'olur', 'hayır', 'evet', 'bilmiyorum',
-    'anladım', 'başlayalım', 'hazırım', 'devam', 'geçelim',
-    'neden', 'nasıl', 'ne zaman', 'nerede', 'kim',
-    'böyle', 'şöyle', 'öyle', 'bu', 'şu', 'o',
-    'dedim', 'dedi', 'söyledi', 'konuştuk', 'anlattı',
-    'güzel', 'kötü', 'iyi', 'fena', 'harika', 'mükemmel',
-    'ya', 'yani', 'işte', 'hani', 'falan', 'filan'
-  ];
+  // 2. Obvious noise detection (hızlı)
+  const obviousNoise = /^(um|uh|hmm|er|ah|ıı|eee|mmm|hı|ha)+$/i.test(lowerTranscript);
+  if (obviousNoise) {
+    return { valid: false, message: "Lütfen cevabınızı net bir şekilde söyleyin" };
+  }
   
-  // Yabancı dil tespiti
+  // 3. Yabancı dil tespiti (hızlı)
   const foreignLanguagePatterns = [
     /[가-힣]/, // Korece
     /[\u4e00-\u9fff]/, // Çince
@@ -35,42 +142,74 @@ function isValidQuestionAnswer(transcript: string, question: Question): { valid:
     /[ا-ي]/, // Arapça
   ];
   
-  // Yabancı dil kontrolü
   for (const pattern of foreignLanguagePatterns) {
     if (pattern.test(transcript)) {
       return { valid: false, message: "Lütfen Türkçe cevap verin" };
     }
   }
   
-  // Sadece genel konuşma ifadelerinden oluşuyor mu?
+  // 4. İngilizce kelime tespiti (hızlı)
+  const englishWords = ['the', 'and', 'or', 'but', 'that', 'this', 'our', 'your', 'see', 'you', 'next', 'time', 'prize', 'winners'];
   const words = lowerTranscript.split(/\s+/).filter(w => w.length > 1);
-  const conversationalWordCount = words.filter(word => 
-    conversationalPhrases.some(phrase => word.includes(phrase) || phrase.includes(word))
-  ).length;
-  
-  // Kelimelerin %80'i genel konuşma ifadesi ise cevap değil
-  if (words.length > 0 && (conversationalWordCount / words.length) > 0.8) {
-    return { valid: false, message: "Lütfen soruya cevap verin" };
+  const englishWordCount = words.filter(word => englishWords.includes(word)).length;
+  if (englishWordCount > 0) {
+    return { valid: false, message: "Lütfen Türkçe cevap verin" };
   }
+  
+  // 5. Contextual pattern matching (orta hız) - Soru tipine göre akıllı kontrol
+  const contextualResult = isContextualAnswer(transcript, question);
+  if (!contextualResult.valid) {
+    return { valid: false, message: contextualResult.message || "Lütfen soruya cevap verin" };
+  }
+  
+  // 6. Meta konuşma tespiti (sadece belirsiz durumlarda)
+  if (lowerTranscript.length < 15) { // Kısa cevaplar için meta talk kontrolü
+    const metaTalk = [
+      'yarışma', 'başla', 'bitir', 'devam', 'geç', 'atla', 'geçelim',
+      'hazır', 'başlayalım', 'tamamdır', 'anladım',
+      'sonraki', 'önceki', 'bu soru', 'şu soru'
+    ];
+    
+    const isMetaTalk = metaTalk.some(phrase => lowerTranscript.includes(phrase));
+    if (isMetaTalk) {
+    return { valid: false, message: "Lütfen soruya cevap verin" };
+    }
+  }
+  
+  return { valid: true };
+}
+
+// Contextual pattern matching helper function
+function isContextualAnswer(transcript: string, question: Question): { valid: boolean; message?: string } {
+  const lowerTranscript = transcript.toLowerCase().trim();
+  const lowerQuestion = question.question.toLowerCase();
   
   // MCQ soruları için özel kontrol
   if (question.type === 'mcq') {
-    const hasValidMCQAnswer = /[abcd]/i.test(lowerTranscript) || 
+    const hasValidMCQAnswer = 
+      // Harf seçenekleri
+      /[abcd]/i.test(lowerTranscript) || 
+      // Sayı seçenekleri
                              /\b(bir|iki|üç|dört|birinci|ikinci|üçüncü|dördüncü)\b/i.test(lowerTranscript) ||
+      // Seçenek içeriği eşleşmesi
                              (question.options && question.options.some(option => {
-                               const optionWords = option.toLowerCase().split(' ').filter(w => w.length > 3);
-                               return optionWords.some(word => lowerTranscript.includes(word));
+        const optionKeywords = extractMeaningfulWords(option);
+        return optionKeywords.some(keyword => 
+          lowerTranscript.includes(keyword.toLowerCase()) && keyword.length > 3
+        );
                              }));
     
     if (!hasValidMCQAnswer) {
       return { valid: false, message: "Lütfen A, B, C veya D şıklarından birini seçin" };
     }
+    
+    return { valid: true };
   }
   
-  // Açık uçlu sorular için sayısal cevap bekleniyor mu?
+  // Açık uçlu sorular için kontrol
   if (question.type === 'open') {
-    const questionText = question.question.toLowerCase();
-    const expectsNumber = /\b(kaç|ne kadar|yüzde|oran|sayı|miktar|ton|milyon|bin)\b/.test(questionText);
+    // Sayısal cevap beklenen sorular
+    const expectsNumber = /\b(kaç|ne kadar|yüzde|oran|sayı|miktar|ton|milyon|bin)\b/.test(lowerQuestion);
     
     if (expectsNumber) {
       const hasNumber = /\d+/.test(transcript) || 
@@ -80,32 +219,53 @@ function isValidQuestionAnswer(transcript: string, question: Question): { valid:
         return { valid: false, message: "Lütfen sayısal bir cevap verin" };
       }
     }
-  }
-  
-  // Meta konuşmalar ve soru-cevap hakkında konuşmalar
-  const metaTalk = [
-    'yarışma', 'başla', 'bitir', 'devam', 'geç', 'atla', 'geçelim',
-    'soru', 'cevap', 'doğru', 'yanlış', 'puan', 'skor',
-    'hazır', 'başlayalım', 'tamamdır', 'anladım',
-    'benim cevabım', 'doğru muydu', 'yanlış mıydı', 'nasıl',
-    'sonraki', 'önceki', 'bu soru', 'şu soru',
-    'bilmiyorum', 'emin değilim', 'sanırım', 'galiba'
-  ];
-  
-  // Meta talk detection - daha sıkı kontrol
-  const isMetaTalk = metaTalk.some(phrase => lowerTranscript.includes(phrase));
-  if (isMetaTalk) {
-    return { valid: false, message: "Lütfen soruya cevap verin" };
-  }
-  
-  // İngilizce ve diğer yabancı diller için ek kontrol
-  const englishWords = ['the', 'and', 'or', 'but', 'that', 'this', 'our', 'your', 'see', 'you', 'next', 'time', 'prize', 'winners'];
-  const englishWordCount = words.filter(word => englishWords.includes(word)).length;
-  if (englishWordCount > 0) {
-    return { valid: false, message: "Lütfen Türkçe cevap verin" };
+    
+    // Keyword overlap kontrolü (daha akıllı)
+    const questionKeywords = extractMeaningfulWords(lowerQuestion);
+    const transcriptKeywords = extractMeaningfulWords(lowerTranscript);
+    
+    // Çok kısa ve anlamsız cevapları filtrele
+    if (transcriptKeywords.length === 0 && lowerTranscript.length < 5) {
+      return { valid: false, message: "Lütfen daha detaylı cevap verin" };
+    }
+    
+    // Sadece "evet", "hayır", "bilmiyorum" gibi tek kelimeli cevapları kontrol et
+    const singleWordAnswers = ['evet', 'hayır', 'bilmiyorum', 'yok', 'var'];
+    if (transcriptKeywords.length === 1 && singleWordAnswers.includes(transcriptKeywords[0])) {
+      // Eğer soru evet/hayır sorusu değilse tek kelimeli cevabı reddet
+      const isYesNoQuestion = /\b(mi|mı|mu|mü)\b/.test(lowerQuestion) || 
+                             /\b(var mı|yok mu|doğru mu|yanlış mı)\b/.test(lowerQuestion);
+      
+      if (!isYesNoQuestion) {
+        return { valid: false, message: "Lütfen daha detaylı cevap verin" };
+      }
+    }
+    
+    return { valid: true };
   }
   
   return { valid: true };
+}
+
+// Meaningful words extractor (stop words'leri çıkarır)
+function extractMeaningfulWords(text: string): string[] {
+  const stopWords = [
+    'bir', 'bu', 'şu', 'o', 've', 'ile', 'için', 'da', 'de', 'ta', 'te',
+    'den', 'dan', 'ten', 'tan', 'nin', 'nın', 'nun', 'nün', 'in', 'ın', 'un', 'ün',
+    'i', 'ı', 'u', 'ü', 'e', 'a', 'ye', 'ya', 'ne', 'na',
+    'ki', 'mi', 'mı', 'mu', 'mü', 'gibi', 'kadar', 'daha', 'en', 'çok', 'az',
+    'var', 'yok', 'olan', 'olarak', 'ise', 'eğer', 'ancak', 'fakat', 'ama',
+    'hangi', 'nasıl', 'neden', 'niçin', 'niye', 'ne', 'kim', 'kime', 'kimi',
+    'nerede', 'nereden', 'nereye', 'ne zaman', 'kaç', 'kaçıncı'
+  ];
+  
+  return text.toLowerCase()
+    .split(/\s+/)
+    .filter(word => 
+      word.length > 2 && 
+      !stopWords.includes(word) && 
+      !/^\d+$/.test(word) // Sadece rakamlardan oluşan kelimeleri de çıkar
+    );
 }
 
 // File cache for improved performance
@@ -144,12 +304,18 @@ const GAME_STATE_TTL = 30 * 60 * 1000; // 30 dakika
 // Game state cleanup function
 function cleanupExpiredStates() {
   const now = Date.now();
-  for (const [sessionId, state] of gameStates.entries()) {
+  const expiredSessions: string[] = [];
+  
+  gameStates.forEach((state, sessionId) => {
     if (now - state.lastActivity > GAME_STATE_TTL) {
+      expiredSessions.push(sessionId);
+    }
+  });
+  
+  expiredSessions.forEach(sessionId => {
       console.log(`🧹 Cleaning up expired session: ${sessionId}`);
       gameStates.delete(sessionId);
-    }
-  }
+  });
 }
 
 // Tool execution timeout wrapper
@@ -341,8 +507,7 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
     if (!transcript || transcript.trim().length < 2) {
       return {
         success: false,
-        message: "Lütfen cevabınızı tekrar söyleyin",
-        canRetry: true
+        message: "Lütfen cevabınızı tekrar söyleyin"
       };
     }
     
@@ -351,9 +516,7 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
     if (!isValidAnswer.valid) {
       return {
         success: false,
-        message: isValidAnswer.message || "Lütfen soruya cevap verin",
-        canRetry: true,
-        ignored: true // Bu cevap göz ardı edildi
+        message: isValidAnswer.message || "Lütfen soruya cevap verin"
       };
     }
     
@@ -363,126 +526,90 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
     console.log(`🎯 Grading answer: "${transcript}" for question:`, currentQuestion.id);
     
     if (currentQuestion.type === 'mcq') {
-      // Çoktan seçmeli soru değerlendirmesi - ÇOK SIKI KONTROL
-      const correctLetter = currentQuestion.correct?.toLowerCase();
+      console.log(`🤖 MCQ LLM Evaluation - Question: "${currentQuestion.question}", User: "${transcript}"`);
       
-      console.log(`🔍 MCQ Evaluation - Correct: ${currentQuestion.correct}, User: "${transcript}"`);
-      
-      // SADECE NET HARF SEÇİMİ KABUL ET
-      if (correctLetter) {
-        // Doğru harfi açık şekilde söylemiş mi? (çok sıkı kontrol)
-        const explicitLetterMention = new RegExp(`\\b${correctLetter}\\b|\\b${correctLetter}\\)|${correctLetter}\\s+şıkkı|${correctLetter}\\s+seçeneği`, 'i');
+      try {
+        isCorrect = await evaluateMCQAnswerWithLLM(currentQuestion, transcript);
+        console.log(`🎯 MCQ LLM Evaluation Result: ${isCorrect ? 'CORRECT' : 'INCORRECT'}`);
+      } catch (error) {
+        console.error('❌ MCQ LLM evaluation failed, falling back to traditional matching:', error);
         
+        // Fallback: Traditional MCQ evaluation
+        const correctLetter = currentQuestion.correct?.toLowerCase();
+        
+        // Harf eşleşmesi kontrolü
+        if (correctLetter) {
+          const explicitLetterMention = new RegExp(`\\b${correctLetter}\\b|\\b${correctLetter}\\)|${correctLetter}\\s+şıkkı`, 'i');
         if (explicitLetterMention.test(normalizedAnswer)) {
-          // Yanlış harfleri de kontrol et - varsa geçersiz
-          const allLetters = ['a', 'b', 'c', 'd'];
-          const wrongLetters = allLetters.filter(letter => letter !== correctLetter);
-          
-          const hasWrongLetters = wrongLetters.some(letter => {
-            const wrongLetterRegex = new RegExp(`\\b${letter}\\b|\\b${letter}\\)|${letter}\\s+şıkkı|${letter}\\s+seçeneği`, 'i');
-            return wrongLetterRegex.test(normalizedAnswer);
-          });
-          
-          if (!hasWrongLetters) {
             isCorrect = true;
-            console.log(`✅ Explicit letter match: ${correctLetter}`);
-          } else {
-            console.log(`❌ Contains wrong letters along with correct one`);
-          }
+            console.log(`🔄 Fallback letter match: ${correctLetter}`);
         }
       }
       
-      // Seçenek metni ile kontrol - SADECE NET EŞLEŞMELERİ KABUL ET
+        // Seçenek içeriği eşleşmesi
       if (!isCorrect && currentQuestion.options && currentQuestion.correct) {
-        const correctIndex = currentQuestion.correct.charCodeAt(0) - 65; // A=0, B=1, etc.
+          const correctIndex = currentQuestion.correct.charCodeAt(0) - 65;
         const correctOption = currentQuestion.options[correctIndex];
         
         if (correctOption) {
-          // Seçenek metninden ana kelimeleri çıkar
-          const optionText = correctOption.toLowerCase().replace(/^[a-d]\)\s*/, ''); // "A) " kısmını çıkar
-          const keyWords = optionText.split(' ').filter(w => w.length > 4); // Sadece 4+ karakterli kelimeler
-          
-          if (keyWords.length > 0) {
-            // En az 2 anahtar kelime eşleşmeli VE yanlış seçeneklerden kelime olmamalı
-            const matchedWords = keyWords.filter(word => normalizedAnswer.includes(word));
+            const optionWords = correctOption.toLowerCase().split(' ').filter(w => w.length > 3);
+            const matchedWords = optionWords.filter(word => normalizedAnswer.includes(word));
             
-            // Diğer seçeneklerden kelime var mı kontrol et
-            const hasWordsFromWrongOptions = currentQuestion.options.some((option, index) => {
-              if (index === correctIndex) return false; // Doğru seçeneği atla
-              
-              const wrongOptionText = option.toLowerCase().replace(/^[a-d]\)\s*/, '');
-              const wrongWords = wrongOptionText.split(' ').filter(w => w.length > 4);
-              
-              return wrongWords.some(word => normalizedAnswer.includes(word));
-            });
-            
-            if (matchedWords.length >= 2 && !hasWordsFromWrongOptions) {
+            if (matchedWords.length >= 1) {
               isCorrect = true;
-              console.log(`✅ Strong option match: ${matchedWords.join(', ')}`);
-            } else {
-              console.log(`❌ Weak option match: ${matchedWords.length} matches, has wrong words: ${hasWordsFromWrongOptions}`);
+              console.log(`🔄 Fallback option match: ${matchedWords.join(', ')}`);
             }
           }
         }
       }
       
     } else if (currentQuestion.type === 'open') {
-      // Açık uçlu soru değerlendirmesi - DAHA SIKI KONTROL
-      const keywords = currentQuestion.openEval?.keywordsAny || [];
-      const regexPatterns = currentQuestion.openEval?.regexAny || [];
+      // LLM ile açık uçlu soru değerlendirmesi
+      console.log(`🤖 LLM Evaluation - Question: "${currentQuestion.question}", User: "${transcript}"`);
       
-      console.log(`🔍 Open Question Evaluation - Keywords: ${keywords}, User: "${transcript}"`);
-      
-      // En az bir anahtar kelime bulunmalı ve cevap anlamlı uzunlukta olmalı
-      if (normalizedAnswer.length < 3) {
-        isCorrect = false;
-        console.log(`❌ Answer too short: ${normalizedAnswer.length} chars`);
-      } else {
-        // Anahtar kelime kontrolü - tam kelime eşleşmesi
+      try {
+        isCorrect = await evaluateOpenAnswerWithLLM(currentQuestion, transcript);
+        console.log(`🎯 LLM Evaluation Result: ${isCorrect ? 'CORRECT' : 'INCORRECT'}`);
+      } catch (error) {
+        console.error('❌ LLM evaluation failed, falling back to keyword matching:', error);
+        
+        // Fallback: Basit keyword matching
+        const keywords = currentQuestion.openEval?.keywordsAny || [];
         const matchedKeywords = keywords.filter(keyword => {
           const keywordLower = keyword.toLowerCase();
-          // Tam kelime eşleşmesi için word boundary kullan
           const wordBoundaryRegex = new RegExp(`\\b${keywordLower}\\b`, 'i');
           return wordBoundaryRegex.test(normalizedAnswer) || 
                  normalizedAnswer.includes(keywordLower);
         });
         
-        if (matchedKeywords.length > 0) {
-          isCorrect = true;
-          console.log(`✅ Matched keywords: ${matchedKeywords.join(', ')}`);
-        }
-        
-        // Regex kontrolü (sadece keyword yoksa)
-        if (!isCorrect && regexPatterns.length > 0) {
-        isCorrect = regexPatterns.some(pattern => {
-          try {
-            const regex = new RegExp(pattern, 'i');
-              const matches = regex.test(normalizedAnswer);
-              if (matches) {
-                console.log(`✅ Matched regex pattern: ${pattern}`);
-              }
-              return matches;
-            } catch (error) {
-              console.error(`Invalid regex pattern: ${pattern}`, error);
-            return false;
-          }
-        });
-      }
-        
-        if (!isCorrect) {
-          console.log(`❌ No keywords or patterns matched. Available: ${keywords.join(', ')}`);
-        }
+        isCorrect = matchedKeywords.length > 0;
+        console.log(`🔄 Fallback result: ${isCorrect ? 'CORRECT' : 'INCORRECT'}, matched: ${matchedKeywords.join(', ')}`);
       }
     }
     
-    // Bu soruya daha önce cevap verilmiş mi kontrol et
-    const alreadyAnswered = state.answers.some(answer => answer.questionId === currentQuestion.id);
-    if (alreadyAnswered) {
-      console.log(`⚠️ Question ${currentQuestion.id} already answered, ignoring duplicate`);
+    // Bu soruya daha önce BAŞARILI cevap verilmiş mi kontrol et
+    const successfullyAnswered = state.answers.some(answer => 
+      answer.questionId === currentQuestion.id && 
+      answer.correct === true
+    );
+    if (successfullyAnswered) {
+      console.log(`⚠️ Question ${currentQuestion.id} already answered correctly, ignoring duplicate`);
       return {
         success: false,
-        message: "Bu soruya zaten cevap verdiniz",
-        ignored: true
+        message: "Bu soruya zaten doğru cevap verdiniz"
+      };
+    }
+    
+    // Aynı soruya çok fazla yanlış cevap verilmişse (spam koruması)
+    const wrongAnswerCount = state.answers.filter(answer => 
+      answer.questionId === currentQuestion.id && 
+      answer.correct === false
+    ).length;
+    if (wrongAnswerCount >= 3) {
+      console.log(`⚠️ Question ${currentQuestion.id} has too many wrong attempts, blocking further attempts`);
+      return {
+        success: false,
+        message: "Bu soruya çok fazla yanlış cevap verdiniz, sonraki soruya geçelim"
       };
     }
     
@@ -656,8 +783,7 @@ async function handleEndQuiz(state: GameState): Promise<ToolCallResult> {
       success: true,
       finished: true,
       score: state.score,
-      message: `Yarışma tamamlandı! Final skorunuz: ${state.score}/${maxScore}`,
-      shouldDisconnect: true // Frontend'e bağlantıyı kesme sinyali
+      message: `Yarışma tamamlandı! Final skorunuz: ${state.score}/${maxScore}`
     };
     
   } catch (error) {

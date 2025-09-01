@@ -57,7 +57,7 @@
     "question": "Sıfır Atık Vakfı hangi yıl kuruldu ve amacı nedir?",
     "openEval": {
       "keywordsAny": ["2023", "iki bin yirmi üç", "sürdürülebilirlik", "kalıcılık"],
-      "regexAny": ["202[0-9]"],
+      "regexAny": ["2023"],
       "minHits": 1
     },
     "points": 15,
