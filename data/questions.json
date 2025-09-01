@@ -1,0 +1,133 @@
+[
+  {
+    "id": "q1",
+    "type": "open",
+    "question": "Türkiye'de Sıfır Atık Projesi'nin başladığı 2017 yılında geri dönüşüm oranı yüzde 13'tü. 2024 yılında bu oran kaça yükseldi?",
+    "openEval": {
+      "keywordsAny": ["36", "otuz altı", "36,08", "yüzde 36", "36 yüzde"],
+      "regexAny": ["3[0-9]", "36"],
+      "minHits": 1
+    },
+    "points": 10,
+    "miniCorpus": "Harika! Doğru cevap yüzde 36,08. Bu gerçekten muhteşem bir başarı hikayesi! Sadece 7 yılda geri dönüşüm oranımızı neredeyse 3 katına çıkardık. Bu, Cumhurbaşkanımızın eşi Emine Erdoğan Hanımefendi'nin himayesindeki Sıfır Atık Projesi'nin ne kadar etkili olduğunu gösteriyor. Siz de evde atık ayrıştırma yaparak bu başarıya katkıda bulunabilirsiniz!"
+  },
+  {
+    "id": "q2",
+    "type": "mcq",
+    "question": "Sıfır Atık sisteminde atıklar kaç ana kategoriye ayrılır ve bunlar nelerdir?",
+    "options": [
+      "A) 3 kategori: Kağıt, Plastik, Cam", 
+      "B) 4 kategori: Kağıt-Karton, Plastik-Metal, Cam, Organik", 
+      "C) 5 kategori: Her atık ayrı", 
+      "D) 2 kategori: Geri dönüşüm ve çöp"
+    ],
+    "correct": "B",
+    "points": 10,
+    "miniCorpus": "Harika! Dört ana kategori var: Kağıt-Karton (mavi kutu), Plastik-Metal (sarı kutu), Cam (beyaz kutu) ve Organik Atık (kahverengi kutu). Bu renk kodlaması sistemi sayesinde herkes kolayca ayrıştırma yapabiliyor. Unutmayın, doğru ayrıştırma geri dönüşümün ilk adımı!"
+  },
+  {
+    "id": "q3",
+    "type": "open",
+    "question": "Sıfır Atık Projesi'nin başladığı 2017'den 2024'e kadar toplam kaç milyon ton atık geri dönüştürüldü?",
+    "openEval": {
+      "keywordsAny": ["59", "elli dokuz", "60", "altmış", "59,9"],
+      "regexAny": ["5[0-9]", "59"],
+      "minHits": 1
+    },
+    "points": 20,
+    "miniCorpus": "Mükemmel! Toplam 59,9 milyon ton atığı geri dönüştürdük. Bu rakamın büyüklüğünü kavrayabiliyor musunuz? 29,3 milyon ton kağıt-karton, 7,8 milyon ton plastik, 2,9 milyon ton cam... Bu, milyonlarca ağacın kesilmesini önledi ve sera gazı emisyonlarını azalttı. Her bir atığın ayrıştırılması, geleceğe yapılan bir yatırım!"
+  },
+  {
+    "id": "q4",
+    "type": "mcq",
+    "question": "Sıfır Atık Projesi kapsamında kurumlar hangi belge sistemine dahil oluyor?",
+    "options": [
+      "A) Sadece Temel Seviye", 
+      "B) Temel, Orta ve İleri Seviye", 
+      "C) Sadece İleri Seviye", 
+      "D) Belge sistemi yok"
+    ],
+    "correct": "B",
+    "points": 10,
+    "miniCorpus": "Doğru! Sıfır Atık Belge Sistemi üç seviyeli: Temel, Orta ve İleri Seviye. Bu sistem sayesinde kurumlar kademeli olarak sıfır atık yönetimini öğreniyor ve uyguluyor. Şu anda 450'den fazla belediye bu sisteme dahil. Siz de kurumunuzda Sıfır Atık sistemini kurmayı düşünebilirsiniz!"
+  },
+  {
+    "id": "q5",
+    "type": "open",
+    "question": "Sıfır Atık Vakfı hangi yıl kuruldu ve amacı nedir?",
+    "openEval": {
+      "keywordsAny": ["2023", "iki bin yirmi üç", "sürdürülebilirlik", "kalıcılık"],
+      "regexAny": ["202[0-9]"],
+      "minHits": 1
+    },
+    "points": 15,
+    "miniCorpus": "Harika! Sıfır Atık Vakfı 2023 yılında kuruldu. Bu vakıf, Sıfır Atık hareketinin sürdürülebilirliğini ve kalıcılığını sağlamak amacıyla oluşturulmuştur. Böylece bu değerli hareket gelecek nesillere aktarılacak ve Türkiye'nin çevre liderliği devam edecek."
+  },
+  {
+    "id": "q6",
+    "type": "mcq",
+    "question": "Emine Erdoğan Hanımefendi hangi uluslararası ödüle layık görülmüştür?",
+    "options": [
+      "A) Nobel Barış Ödülü", 
+      "B) BM Küresel Amaçlar Eylem Ödülü", 
+      "C) Çevre Oscar'ı", 
+      "D) Yeşil Gezegen Ödülü"
+    ],
+    "correct": "B",
+    "points": 15,
+    "miniCorpus": "Kesinlikle doğru! Emine Erdoğan Hanımefendi, Sıfır Atık Projesi ile BM Küresel Amaçlar Eylem Ödülü'ne layık görülmüştür. Ayrıca BM Sıfır Atık Yüksek Düzeyli Şahsiyetler Danışma Kurulu'nun başkanıdır. Bu, Türkiye'nin çevre alanındaki liderliğinin uluslararası tanınırlığıdır."
+  },
+  {
+    "id": "q7",
+    "type": "open",
+    "question": "2035 yılında Türkiye'nin geri dönüşüm oranı hedefi yüzde kaçtır?",
+    "openEval": {
+      "keywordsAny": ["60", "altmış", "yüzde 60", "60 yüzde"],
+      "regexAny": ["6[0-9]", "60"],
+      "minHits": 1
+    },
+    "points": 10,
+    "miniCorpus": "Mükemmel! 2035 yılında yüzde 60 hedefimiz var, 2053'te ise yüzde 70'e çıkacağız. Şu anki yüzde 36'dan yüzde 60'a çıkmak büyük bir hedef ama Türkiye'nin kararlılığı ile kesinlikle başaracağız! Siz de bu hedefe ulaşmamızda önemli bir rol oynuyorsunuz."
+  },
+  {
+    "id": "q8",
+    "type": "mcq",
+    "question": "Sıfır Atık Projesi kapsamında kaç kişiye eğitim verilmiştir?",
+    "options": [
+      "A) 10 milyon", 
+      "B) 15 milyon", 
+      "C) 25 milyon", 
+      "D) 30 milyon"
+    ],
+    "correct": "C",
+    "points": 15,
+    "miniCorpus": "Harika! 7 yılda 25 milyon kişiye eğitim verildi. Bu rakam, projenin ne kadar geniş kitlelere ulaştığını ve farkındalık yarattığını gösteriyor. Her eğitim alan kişi çevresindeki insanlara örnek oluyor. Siz de bu yarışmayı tamamlayarak bu eğitimli kişiler arasına katıldınız!"
+  },
+  {
+    "id": "q9",
+    "type": "open",
+    "question": "Sıfır Atık Projesi ile kaç binada Sıfır Atık Yönetim Sistemi kurulmuştur?",
+    "openEval": {
+      "keywordsAny": ["205", "iki yüz beş", "200", "iki yüz"],
+      "regexAny": ["20[0-9]", "205"],
+      "minHits": 1
+    },
+    "points": 20,
+    "miniCorpus": "Süper! 205 bin binada Sıfır Atık Yönetim Sistemi kuruldu. Kamu kurumları, özel sektör, okullar, hastaneler... Herkes bu harekete katıldı. Bu sayı her geçen gün artmaya devam ediyor. Belki siz de yaşadığınız binada veya çalıştığınız yerde bu sistemi kurulmasını önerebilirsiniz!"
+  },
+  {
+    "id": "q10",
+    "type": "mcq",
+    "question": "Sıfır Atık hareketinin temel felsefesi nedir?",
+    "options": [
+      "A) Sadece geri dönüşüm", 
+      "B) İsrafın önlenmesi ve kaynakların verimli kullanımı", 
+      "C) Sadece atık toplama", 
+      "D) Çöp yakma"
+    ],
+    "correct": "B",
+    "points": 10,
+    "miniCorpus": "Kesinlikle doğru! Sıfır Atık, israfın önlenmesi, kaynakların daha verimli kullanılması ve atık oluşumunun minimize edilmesi felsefesidir. Bu sadece bir çevre hareketi değil, yaşam tarzıdır! Unutmayın, geleceğimiz bugün attığımız adımlarla şekilleniyor."
+  }
+]
+

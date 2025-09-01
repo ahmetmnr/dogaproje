@@ -1,0 +1,43 @@
+[
+  {
+    "patterns": ["sıfır atık nedir", "sıfır atık ne demek", "zero waste nedir", "sıfır atık tanımı", "sıfır atık projesi nedir"],
+    "answer": "Sıfır Atık, israfın önlenmesini, kaynakların daha verimli kullanılmasını, atık oluşum sebeplerinin gözden geçirilerek atık oluşumunun engellenmesi veya minimize edilmesini kapsayan atık yönetim felsefesidir. Emine Erdoğan Hanımefendi'nin himayesinde 2017'de başlayan bu hareket, Türkiye'yi dünya lideri yaptı."
+  },
+  {
+    "patterns": ["emine erdoğan", "emine erdoğan hanımefendi", "cumhurbaşkanı eşi", "proje öncüsü", "hanımefendi"],
+    "answer": "Emine Erdoğan Hanımefendi, Sıfır Atık Projesi'nin öncüsü ve himayecisidir. 27 Eylül 2017'de bu hareketi başlattı. BM Küresel Amaçlar Eylem Ödülü'ne layık görülmüştür ve BM Sıfır Atık Yüksek Düzeyli Şahsiyetler Danışma Kurulu'nun başkanıdır. BM Genel Kurulu'nda katılımcılara hitap eden ilk Türk lider eşi olmuştur."
+  },
+  {
+    "patterns": ["geri dönüşüm oranı", "ne kadar geri dönüştürüldü", "başarı oranları", "istatistikler", "rakamlar"],
+    "answer": "Türkiye'de geri dönüşüm oranı 2017'de %13'ken, 2024'te %36,08'e yükseldi. Bu muhteşem bir başarı! 7 yılda toplam 59,9 milyon ton atık geri kazanıldı. 2035'te %60'a, 2053'te %70'e çıkarma hedefimiz var. Bu rakamlar Türkiye'nin çevre alanındaki kararlılığını gösteriyor."
+  },
+  {
+    "patterns": ["atık ayrıştırma", "renkli kutular", "hangi kutu", "renk kodları", "ayrıştırma sistemi", "hangi renk"],
+    "answer": "Sıfır Atık sisteminde 4 ana kategori var: Kağıt-Karton (mavi kutu), Plastik-Metal (sarı kutu), Cam (beyaz kutu) ve Organik Atık (kahverengi kutu). Bu renk kodlaması sayesinde herkes kolayca ayrıştırma yapabilir. Doğru ayrıştırma geri dönüşümün ilk adımıdır."
+  },
+  {
+    "patterns": ["evde ne yapabilirim", "nasıl katkı sağlarım", "bireysel olarak", "evde sıfır atık", "ne yapmalıyım"],
+    "answer": "Evde yapabileceğiniz çok şey var! Atıkları doğru ayrıştırın, tek kullanımlık ürünleri azaltın, bez çanta kullanın, cam şişeleri tercih edin, organik atıkları kompost yapın, gereksiz tüketimden kaçının. Küçük adımlar büyük değişimler yaratır! Her doğru ayrıştırılan atık, doğaya verilen bir hediyedir."
+  },
+  {
+    "patterns": ["iş yerinde", "ofiste", "şirkette", "meslek", "kurumsal sıfır atık", "işyerinde"],
+    "answer": "İş yerinizde de Sıfır Atık uygulayabilirsiniz! Kağıt kullanımını azaltın, dijital belgeleri tercih edin, atıkları doğru ayrıştırın. Şu anda 205 bin binada Sıfır Atık Yönetim Sistemi kuruldu. Kurumunuz da Temel, Orta veya İleri Seviye Sıfır Atık Belge Sistemi'ne katılabilir!"
+  },
+  {
+    "patterns": ["çocuklar", "eğitim", "okul", "genç", "farkındalık", "öğrenci"],
+    "answer": "Çocuklara çevre bilinci kazandırmak çok önemli! Sıfır Atık Projesi kapsamında 7 yılda 25 milyon kişiye eğitim verildi. Okullardan üniversitelere kadar her yerde eğitim programları düzenleniyor. Geleceğin çevre bilincine sahip nesilleri yetiştiriyoruz. Her eğitim alan kişi çevresindeki insanlara örnek oluyor."
+  },
+  {
+    "patterns": ["vakıf", "sıfır atık vakfı", "kuruluş", "organizasyon"],
+    "answer": "Sıfır Atık Vakfı 2023 yılında kuruldu. Bu vakıf, Sıfır Atık hareketinin sürdürülebilirliğini ve kalıcılığını sağlamak amacıyla oluşturulmuştur. Böylece bu değerli hareket gelecek nesillere aktarılacak ve Türkiye'nin çevre liderliği devam edecek."
+  },
+  {
+    "patterns": ["ödül", "uluslararası", "tanınma", "başarı", "bm"],
+    "answer": "Emine Erdoğan Hanımefendi, Sıfır Atık Projesi ile BM Küresel Amaçlar Eylem Ödülü'ne layık görülmüştür. BM Sıfır Atık Yüksek Düzeyli Şahsiyetler Danışma Kurulu'nun başkanıdır. Bu, Türkiye'nin çevre alanındaki liderliğinin uluslararası tanınırlığıdır."
+  },
+  {
+    "patterns": ["gelecek", "hedef", "2035", "2053", "plan"],
+    "answer": "Türkiye'nin geri dönüşüm hedefleri çok iddialı: 2035 yılında %60, 2053 yılında %70 geri dönüşüm oranına ulaşmayı hedefliyoruz. Şu anki %36,08'den bu hedeflere ulaşmak büyük bir kararlılık gerektiriyor ama Türkiye'nin çevre alanındaki liderliği ile kesinlikle başaracağız!"
+  }
+]
+
