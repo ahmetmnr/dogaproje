@@ -812,9 +812,16 @@ async function handleUserQuestion({ question }: any): Promise<ToolCallResult> {
       )
     );
     
-    const answer = matchedItem ? 
-      matchedItem.answer : 
-      'Bu konuda detaylı bilgim yok. Yarışma sonunda daha fazla bilgi edinebilirsiniz. Şimdi yarışmamıza kaldığımız yerden devam edelim!';
+    let answer;
+    
+    if (matchedItem) {
+      answer = matchedItem.answer;
+    } else {
+      // Fallback: Genel Sıfır Atık bilgisi + yönlendirme
+      answer = `Bu konuda spesifik bilgim şu anda yok ama size şunu söyleyebilirim: Sıfır Atık Projesi Türkiye'nin en başarılı çevre hareketi! 7 yılda geri dönüşüm oranımızı %13'ten %36,08'e çıkardık, 59,9 milyon ton atık geri kazandık. 25 milyon kişiye eğitim verdik ve 450'den fazla belediye sisteme dahil oldu. 
+      
+Daha detaylı bilgi için yarışma sonunda konuşabiliriz. Şimdi yarışmamıza kaldığımız yerden devam edelim! Bu arada, bilginizi test etmeye hazır mısınız?`;
+    }
     
     console.log(`💬 Answer provided for user question`);
     
