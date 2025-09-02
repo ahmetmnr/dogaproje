@@ -34,6 +34,8 @@ export interface Answer {
   answer: string;
   correct: boolean;
   points: number;
+  maxPoints?: number;
+  percentage?: number;
 }
 
 export interface QnAItem {
@@ -59,6 +61,9 @@ export interface ToolCallResult {
   answer?: string;
   correct?: boolean;
   points?: number;
+  maxPoints?: number;
+  percentage?: number;
   explanation?: string;
+  confidence?: number;
 }
 

@@ -9,112 +9,232 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// LLM ile çoktan seçmeli cevap değerlendirmesi
-async function evaluateMCQAnswerWithLLM(question: Question, userAnswer: string): Promise<boolean> {
-  const systemPrompt = `Sen bir Türkçe çoktan seçmeli sınav değerlendirme uzmanısın. 
+// 🌿 SIFIR ATIK PROJESİ GENEL BİLGİ BANKASI
+const SIFIR_ATIK_BILGI_BANKASI = `
+🌿 SIFIR ATIK PROJESİ GENEL BİLGİ BANKASI:
 
-GÖREVIN:
-1. Kullanıcının cevabının hangi seçeneği işaret ettiğini belirle
-2. Bu seçeneğin doğru olup olmadığını kontrol et
-3. Sadece "true" (doğru) veya "false" (yanlış) olarak yanıtla
+📅 TARİHÇE:
+- 2017 yılında başlatıldı
+- Emine Erdoğan Hanımefendi himayesinde
+- Türkiye Cumhuriyeti Cumhurbaşkanlığı öncülüğünde
 
-DEĞERLENDIRME KRITERLERI:
-- Kullanıcı harf (A, B, C, D) söyleyebilir
-- Kullanıcı seçenek içeriğini söyleyebilir
-- Yaklaşık/benzer ifadeler kabul edilebilir
-- Birden fazla seçenek işaret ederse yanlış
-- Anlamsız/ilgisiz cevaplar yanlış
+📊 BAŞARI RAKAMLARI:
+- Geri dönüşüm oranı: 2017'de %13 → 2024'te %36,08
+- Toplam geri dönüştürülen atık: 59,9 milyon ton
+- Eğitim alan kişi sayısı: 25 milyon
+- Sistem kurulan bina sayısı: 205 bin
+- Dahil olan belediye sayısı: 450+
+
+🎯 HEDEFLER:
+- 2035 yılı hedefi: %60 geri dönüşüm oranı
+- 2053 yılı hedefi: %70 geri dönüşüm oranı
+
+🗂️ ATIK KATEGORİLERİ:
+- Kağıt-Karton (Mavi kutu)
+- Plastik-Metal (Sarı kutu) 
+- Cam (Beyaz kutu)
+- Organik Atık (Kahverengi kutu)
+
+📈 DETAYLI GERİ DÖNÜŞÜM RAKAMLARI:
+- Kağıt-karton: 29,3 milyon ton
+- Plastik: 7,8 milyon ton
+- Cam: 2,9 milyon ton
+- Metal: Milyonlarca ton
+
+🏆 ULUSLARARASI BAŞARILAR:
+- BM Küresel Amaçlar Eylem Ödülü
+- BM Sıfır Atık Yüksek Düzeyli Şahsiyetler Danışma Kurulu Başkanlığı
+- Dünya çapında örnek gösterilen proje
+
+🏢 KURUMSAL YAPILANMA:
+- Sıfır Atık Belge Sistemi: Temel, Orta, İleri Seviye
+- Kamu kurumları, özel sektör, eğitim kurumları dahil
+- Sistematik eğitim ve sertifikasyon programları
+
+🌍 ÇEVRESEL ETKİ:
+- Milyonlarca ağacın kesilmesi önlendi
+- Sera gazı emisyonları azaltıldı
+- Doğal kaynaklar korundu
+- Ekonomiye milyarlarca lira katkı
+
+💡 PRATİK UYGULAMALAR:
+- Evde atık ayrıştırma
+- Renk kodlu kutu sistemi
+- Bilinçli tüketim alışkanlıkları
+- Geri dönüşüm bilinci artırma
+
+🏛️ KURUMSALLAŞMA:
+- Sıfır Atık Vakfı (2023 yılında kuruldu)
+- Sürdürülebilirlik ve kalıcılık amacıyla
+- Gelecek nesillere aktarım hedefi
+`;
+
+// 🧠 İKİ KATMANLI HİBRİT DEĞERLENDİRME SİSTEMİ
+async function evaluateAnswerWithFullContext(
+  question: Question, 
+  userAnswer: string,
+  currentQuestionIndex: number
+): Promise<{
+  isCorrect: boolean;
+  points: number;
+  explanation: string;
+  contextualInfo: string;
+}> {
+  
+  const systemPrompt = `Sen Sıfır Atık Projesi uzmanı bir değerlendirme asistanısın.
+
+${SIFIR_ATIK_BILGI_BANKASI}
+
+🎯 DEĞERLENDİRME FELSEFESİ: ESNEK VE ADIL
+
+PUAN SİSTEMİ - JSON formatında döndür:
+{
+  "isCorrect": true/false, // 60+ puan varsa true
+  "points": 0-100, // Kısmi puan verebilirsin
+  "explanation": "Neden bu puanı verdiğini açıkla",
+  "contextualInfo": "Sıfır Atık bağlamında ek bilgi"
+}
+
+📝 ÇOKTAN SEÇMELİ SORULAR:
+- Doğru harf: 100 puan
+- Doğru içerik kısmen: 80-100 puan  
+- Eksik ama açık: 70-90 puan
+- Yanlış harf ama doğru içerik: 60-80 puan
 
 ÖRNEKLER:
-Seçenekler: A) Temel Seviye B) Temel, Orta ve İleri Seviye C) Sadece İleri
-Doğru: B
-- "B" → true
-- "temel orta ve ileri" → true  
-- "üç seviye var" → true
-- "A" → false
-- "bilmiyorum" → false`;
+✅ "B" → 100 puan (tam puan)
+✅ "B 6 kategori" → 100 puan (açık seçim)
+✅ "6 kategori plastik metal kağıt cam" → 80 puan (eksik ama doğru)
+✅ "altı kategori var" → 70 puan (genel doğru bilgi)
+❌ "3 kategori" → 0 puan (tamamen yanlış)
 
-  const optionsText = question.options?.map((opt, idx) => `${String.fromCharCode(65 + idx)}) ${opt.replace(/^[A-D]\)\s*/, '')}`).join('\n') || '';
+📊 SAYISAL SORULAR:
+- Tam doğru: 100 puan
+- ±2 fark: 90 puan
+- ±5 fark: 80 puan
+- ±10 fark: 60 puan
+- Daha fazla: 0 puan
+
+ÖRNEKLER (Doğru: 59 milyon):
+✅ "59 milyon" → 100 puan
+✅ "58 milyon" → 90 puan (1 fark)
+✅ "60 milyon" → 90 puan (1 fark)
+✅ "55 milyon" → 80 puan (4 fark)
+✅ "50 milyon" → 60 puan (9 fark)
+❌ "30 milyon" → 0 puan (çok uzak)
+
+🎭 YAKLAŞIK İFADELER: Tam puan ver
+- "sanırım", "galiba", "civarı", "kadar", "yaklaşık"
+
+ÖNEMLİ: Kullanıcı doğru yönde düşünüyorsa MUTLAKA puan ver!`;
+
+  // Soru tipine göre prompt hazırla
+  let questionContext = `SORU ${currentQuestionIndex + 1}/10: ${question.question}\n`;
   
-  const userPrompt = `SORU: ${question.question}
+  if (question.type === 'mcq' && question.options) {
+    questionContext += `\nSEÇENEKLER:\n${question.options.join('\n')}\nDOĞRU CEVAP: ${question.correct}\n`;
+  }
+  
+  if (question.openEval?.keywordsAny) {
+    questionContext += `\nDOĞRU CEVAP İPUÇLARI: ${question.openEval.keywordsAny.join(', ')}\n`;
+  }
+  
+  if (question.miniCorpus) {
+    questionContext += `\nSORU SPESİFİK BİLGİ: ${question.miniCorpus}\n`;
+  }
 
-SEÇENEKLER:
-${optionsText}
+  const userPrompt = `${questionContext}
 
-DOĞRU CEVAP: ${question.correct}
+KULLANICI CEVABI: "${userAnswer}"
 
-KULLANICI CEVABI: ${userAnswer}
-
-DEĞERLENDIRME:`;
+Bu cevabı Sıfır Atık bilgi bankası ve soru-spesifik bilgiler ışığında değerlendir: birebir aynı olmasa da kullanıcı doğru cevaba yakın bir şey söylemişs doğru kabul et ve bunu da söyle `;
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-5-nano',
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
-      max_completion_tokens: 10
+      response_format: { type: "json_object" },
+      max_tokens: 300
     });
 
-    const result = response.choices[0]?.message?.content?.trim().toLowerCase();
-    return result === 'true';
+    const result = JSON.parse(response.choices[0]?.message?.content || '{}');
+    
+    // Puan kontrolü
+    const points = Math.max(0, Math.min(100, result.points || 0));
+    const isCorrect = points >= 60; // 60+ puan = doğru
+    
+    console.log(`🤖 Esnek Değerlendirme:`);
+    console.log(`📝 Question ${currentQuestionIndex + 1}: "${question.question}"`);
+    console.log(`👤 User Answer: "${userAnswer}"`);
+    console.log(`🎯 Result: ${isCorrect ? 'CORRECT' : 'INCORRECT'} (${points}/100 puan)`);
+    console.log(`💡 Explanation: ${result.explanation}`);
+    
+    return {
+      isCorrect: isCorrect,
+      points: points,
+      explanation: result.explanation || 'Değerlendirme tamamlandı',
+      contextualInfo: result.contextualInfo || ''
+    };
     
   } catch (error) {
-    console.error('MCQ LLM evaluation error:', error);
-    throw error;
+    console.error('❌ Full context evaluation failed:', error);
+    
+    // Fallback: Basit değerlendirme
+    return fallbackEvaluationWithContext(question, userAnswer);
   }
 }
 
-// LLM ile açık uçlu cevap değerlendirmesi
-async function evaluateOpenAnswerWithLLM(question: Question, userAnswer: string): Promise<boolean> {
-  const systemPrompt = `Sen bir Türkçe sınav değerlendirme uzmanısın. Verilen soruya kullanıcının verdiği cevabı değerlendir.
-
-GÖREVIN:
-1. Kullanıcının cevabının soruya uygun olup olmadığını kontrol et
-2. Cevabın doğruluğunu değerlendir
-3. Sadece "true" (doğru) veya "false" (yanlış) olarak yanıtla
-
-DEĞERLENDIRME KRITERLERI:
-- Cevap soruyla ilgili olmalı
-- Temel bilgiler doğru olmalı
-- Yaklaşık/benzer cevaplar da kabul edilebilir
-- Tamamen yanlış bilgiler kabul edilmez
-- Anlamsız/ilgisiz cevaplar kabul edilmez
-
-ÖRNEKLER:
-Soru: "Sıfır Atık Vakfı hangi yıl kuruldu?"
-- "2023" → true
-- "2022" → false (yanlış yıl)
-- "iki bin yirmi üç" → true
-- "bilmiyorum" → false
-- "geçen yıl" → false (belirsiz)`;
-
-  const userPrompt = `SORU: ${question.question}
-
-KULLANICI CEVABI: ${userAnswer}
-
-DOĞRU CEVAP İPUCU: ${question.miniCorpus}
-
-DEĞERLENDIRME:`;
-
-  try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-5-nano',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      max_completion_tokens: 10
-    });
-
-    const result = response.choices[0]?.message?.content?.trim().toLowerCase();
-    return result === 'true';
+// Fallback değerlendirme sistemi
+function fallbackEvaluationWithContext(question: Question, userAnswer: string): {
+  isCorrect: boolean;
+  points: number;
+  explanation: string;
+  contextualInfo: string;
+} {
+  const normalizedAnswer = userAnswer.toLowerCase().trim();
+  let points = 0;
+  
+  if (question.type === 'mcq') {
+    const correctLetter = question.correct?.toLowerCase();
+    const explicitLetterMention = new RegExp(`\\b${correctLetter}\\b`, 'i');
     
-  } catch (error) {
-    console.error('LLM evaluation error:', error);
-    throw error;
+    if (explicitLetterMention.test(normalizedAnswer)) {
+      points = 100; // Tam puan
+    } else if (question.options && question.correct) {
+      const correctIndex = question.correct.charCodeAt(0) - 65;
+      const correctOption = question.options[correctIndex];
+      const optionWords = correctOption.toLowerCase().split(' ').filter(w => w.length > 3);
+      const matchedWords = optionWords.filter(word => normalizedAnswer.includes(word));
+      
+      if (matchedWords.length >= 2) {
+        points = 80; // Güçlü eşleşme
+      } else if (matchedWords.length >= 1) {
+        points = 70; // Kısmi eşleşme
+      }
+    }
+  } else if (question.type === 'open') {
+    const keywords = question.openEval?.keywordsAny || [];
+    const matchedKeywords = keywords.filter(keyword => {
+      const keywordLower = keyword.toLowerCase();
+      return normalizedAnswer.includes(keywordLower);
+    });
+    
+    if (matchedKeywords.length > 0) {
+      points = 100; // Anahtar kelime eşleşti
+    }
   }
+  
+  const isCorrect = points >= 60;
+  
+  return {
+    isCorrect,
+    points,
+    explanation: isCorrect ? `Fallback sistemi ile ${points}/100 puan` : 'Fallback sistemi ile yetersiz puan',
+    contextualInfo: 'Sıfır Atık Projesi kapsamında değerlendirildi'
+  };
 }
 
 // Hybrid akıllı cevap filtreleme fonksiyonu
@@ -148,11 +268,26 @@ function isValidQuestionAnswer(transcript: string, question: Question): { valid:
     }
   }
   
-  // 4. İngilizce kelime tespiti (hızlı)
-  const englishWords = ['the', 'and', 'or', 'but', 'that', 'this', 'our', 'your', 'see', 'you', 'next', 'time', 'prize', 'winners'];
+  // 4. İngilizce kelime tespiti (geliştirilmiş)
+  const englishWords = [
+    // Temel kelimeler
+    'the', 'and', 'or', 'but', 'that', 'this', 'our', 'your', 'see', 'you', 'next', 'time', 'prize', 'winners',
+    // Yaygın kelimeler
+    'what', 'where', 'when', 'why', 'how', 'who', 'which', 'can', 'will', 'would', 'should', 'could',
+    'have', 'has', 'had', 'do', 'does', 'did', 'get', 'got', 'make', 'made', 'take', 'took',
+    'go', 'went', 'come', 'came', 'say', 'said', 'tell', 'told', 'know', 'knew', 'think', 'thought',
+    // Küfür ve argo
+    'asshole', 'damn', 'shit', 'fuck', 'hell', 'bitch', 'stupid', 'idiot',
+    // Diğer
+    'here', 'there', 'from', 'with', 'about', 'into', 'through', 'during', 'before', 'after',
+    'case', 'must', 'move', 'doing', 'something', 'anything', 'nothing', 'everything'
+  ];
+  
   const words = lowerTranscript.split(/\s+/).filter(w => w.length > 1);
   const englishWordCount = words.filter(word => englishWords.includes(word)).length;
-  if (englishWordCount > 0) {
+  
+  // Eğer kelimelerin %30'u İngilizce ise reddet
+  if (words.length > 0 && (englishWordCount / words.length) > 0.3) {
     return { valid: false, message: "Lütfen Türkçe cevap verin" };
   }
   
@@ -525,66 +660,24 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
     
     console.log(`🎯 Grading answer: "${transcript}" for question:`, currentQuestion.id);
     
-    if (currentQuestion.type === 'mcq') {
-      console.log(`🤖 MCQ LLM Evaluation - Question: "${currentQuestion.question}", User: "${transcript}"`);
+    // ✅ FULL CONTEXT AI DEĞERLENDİRME - İki katmanlı hibrit sistem
+    console.log(`🧠 Hibrit Değerlendirme - Question: "${currentQuestion.question}", User: "${transcript}"`);
+    
+    let evaluation;
+    try {
+      evaluation = await evaluateAnswerWithFullContext(
+        currentQuestion, 
+        transcript, 
+        state.currentQuestionIndex
+      );
+      isCorrect = evaluation.isCorrect;
+      console.log(`🎯 Hibrit Evaluation Result: ${isCorrect ? 'CORRECT' : 'INCORRECT'} (${evaluation.points}/100 puan)`);
+    } catch (error) {
+      console.error('❌ Hibrit evaluation failed, using fallback:', error);
       
-      try {
-        isCorrect = await evaluateMCQAnswerWithLLM(currentQuestion, transcript);
-        console.log(`🎯 MCQ LLM Evaluation Result: ${isCorrect ? 'CORRECT' : 'INCORRECT'}`);
-      } catch (error) {
-        console.error('❌ MCQ LLM evaluation failed, falling back to traditional matching:', error);
-        
-        // Fallback: Traditional MCQ evaluation
-        const correctLetter = currentQuestion.correct?.toLowerCase();
-        
-        // Harf eşleşmesi kontrolü
-        if (correctLetter) {
-          const explicitLetterMention = new RegExp(`\\b${correctLetter}\\b|\\b${correctLetter}\\)|${correctLetter}\\s+şıkkı`, 'i');
-        if (explicitLetterMention.test(normalizedAnswer)) {
-            isCorrect = true;
-            console.log(`🔄 Fallback letter match: ${correctLetter}`);
-        }
-      }
-      
-        // Seçenek içeriği eşleşmesi
-      if (!isCorrect && currentQuestion.options && currentQuestion.correct) {
-          const correctIndex = currentQuestion.correct.charCodeAt(0) - 65;
-        const correctOption = currentQuestion.options[correctIndex];
-        
-        if (correctOption) {
-            const optionWords = correctOption.toLowerCase().split(' ').filter(w => w.length > 3);
-            const matchedWords = optionWords.filter(word => normalizedAnswer.includes(word));
-            
-            if (matchedWords.length >= 1) {
-              isCorrect = true;
-              console.log(`🔄 Fallback option match: ${matchedWords.join(', ')}`);
-            }
-          }
-        }
-      }
-      
-    } else if (currentQuestion.type === 'open') {
-      // LLM ile açık uçlu soru değerlendirmesi
-      console.log(`🤖 LLM Evaluation - Question: "${currentQuestion.question}", User: "${transcript}"`);
-      
-      try {
-        isCorrect = await evaluateOpenAnswerWithLLM(currentQuestion, transcript);
-        console.log(`🎯 LLM Evaluation Result: ${isCorrect ? 'CORRECT' : 'INCORRECT'}`);
-      } catch (error) {
-        console.error('❌ LLM evaluation failed, falling back to keyword matching:', error);
-        
-        // Fallback: Basit keyword matching
-        const keywords = currentQuestion.openEval?.keywordsAny || [];
-        const matchedKeywords = keywords.filter(keyword => {
-          const keywordLower = keyword.toLowerCase();
-          const wordBoundaryRegex = new RegExp(`\\b${keywordLower}\\b`, 'i');
-          return wordBoundaryRegex.test(normalizedAnswer) || 
-                 normalizedAnswer.includes(keywordLower);
-        });
-        
-        isCorrect = matchedKeywords.length > 0;
-        console.log(`🔄 Fallback result: ${isCorrect ? 'CORRECT' : 'INCORRECT'}, matched: ${matchedKeywords.join(', ')}`);
-      }
+      evaluation = fallbackEvaluationWithContext(currentQuestion, transcript);
+      isCorrect = evaluation.isCorrect;
+      console.log(`🔄 Fallback Result: ${isCorrect ? 'CORRECT' : 'INCORRECT'} (${evaluation.points}/100 puan)`);
     }
     
     // Bu soruya daha önce BAŞARILI cevap verilmiş mi kontrol et
@@ -613,28 +706,39 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
       };
     }
     
-    // Puan hesaplama
-    const pointsEarned = isCorrect ? currentQuestion.points : 0;
-    state.score += pointsEarned;
+    // Kısmi puan hesaplama sistemi
+    const maxPoints = currentQuestion.points;
+    const earnedPoints = Math.round((evaluation.points / 100) * maxPoints);
+    state.score += earnedPoints;
     
-    // Cevabı kaydet
+    // Cevabı kaydet (genişletilmiş)
     state.answers.push({
       questionId: currentQuestion.id,
       answer: transcript,
       correct: isCorrect,
-      points: pointsEarned
+      points: earnedPoints,
+      maxPoints: maxPoints,
+      percentage: evaluation.points
     });
     
-    console.log(`📊 Answer graded: ${isCorrect ? 'CORRECT' : 'INCORRECT'}, Points: ${pointsEarned}, Total: ${state.score}`);
+    console.log(`📊 Answer graded: ${isCorrect ? 'CORRECT' : 'PARTIAL/INCORRECT'}, Points: ${earnedPoints}/${maxPoints} (${evaluation.points}%), Total: ${state.score}`);
     
+    // Açıklama: miniCorpus + AI contextual info + hibrit explanation
+    const fullExplanation = currentQuestion.miniCorpus + 
+      (evaluation?.contextualInfo ? ` ${evaluation.contextualInfo}` : '') +
+      (evaluation?.explanation ? ` (${evaluation.explanation})` : '');
+
     return {
       success: true,
       correct: isCorrect,
-      points: pointsEarned,
+      points: earnedPoints,
+      maxPoints: maxPoints,
+      percentage: evaluation.points,
       score: state.score,
-      explanation: currentQuestion.miniCorpus,
+      explanation: fullExplanation,
       questionIndex: state.currentQuestionIndex,
-      message: `Cevap değerlendirildi: ${isCorrect ? 'Doğru' : 'Yanlış'}`
+      message: `Cevap değerlendirildi: ${isCorrect ? 'Doğru' : 'Kısmi/Yanlış'} (${evaluation.points}/100)`,
+      confidence: evaluation.points
     };
     
   } catch (error) {

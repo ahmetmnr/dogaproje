@@ -4,38 +4,38 @@
     "type": "open",
     "question": "Türkiye'de Sıfır Atık Projesi'nin başladığı 2017 yılında geri dönüşüm oranı yüzde 13'tü. 2024 yılında bu oran kaça yükseldi?",
     "openEval": {
-      "keywordsAny": ["36", "otuz altı", "36,08", "yüzde 36", "36 yüzde"],
+      "keywordsAny": ["36", "otuz altı", "36,08", "yüzde 36", "36 yüzde", "36.08"],
       "regexAny": ["3[0-9]", "36"],
       "minHits": 1
     },
     "points": 10,
-    "miniCorpus": "Harika! Doğru cevap yüzde 36,08. Bu gerçekten muhteşem bir başarı hikayesi! Sadece 7 yılda geri dönüşüm oranımızı neredeyse 3 katına çıkardık. Bu, Cumhurbaşkanımızın eşi Emine Erdoğan Hanımefendi'nin himayesindeki Sıfır Atık Projesi'nin ne kadar etkili olduğunu gösteriyor. Siz de evde atık ayrıştırma yaparak bu başarıya katkıda bulunabilirsiniz!"
+    "miniCorpus": "Doğru cevap yüzde 36,08. Sıfır Atık Projesi 7 yılda geri dönüşüm oranını neredeyse 3 katına çıkardı. Proje Cumhurbaşkanı eşi Emine Erdoğan Hanımefendi'nin himayesinde yürütülüyor."
   },
-  {
+    {
     "id": "q2",
     "type": "mcq",
-    "question": "Sıfır Atık sisteminde atıklar kaç ana kategoriye ayrılır ve bunlar nelerdir?",
+    "question": "Sıfır Atık sisteminde atıklar kaç ana kategoriye ayrılır ve renk kodları nelerdir?",
     "options": [
-      "A) 3 kategori: Kağıt, Plastik, Cam", 
-      "B) 4 kategori: Kağıt-Karton, Plastik-Metal, Cam, Organik", 
-      "C) 5 kategori: Her atık ayrı", 
-      "D) 2 kategori: Geri dönüşüm ve çöp"
+      "A) 4 kategori: Plastik, Metal, Kağıt, Cam", 
+      "B) 6 kategori: Plastik (sarı), Metal (gri), Kağıt (mavi), Cam (yeşil), Biyobozunur (kahverengi), Diğer Atıklar (gri)", 
+      "C) 3 kategori: Kağıt, Plastik, Cam", 
+      "D) 5 kategori: Karışık sistem"
     ],
     "correct": "B",
     "points": 10,
-    "miniCorpus": "Harika! Dört ana kategori var: Kağıt-Karton (mavi kutu), Plastik-Metal (sarı kutu), Cam (beyaz kutu) ve Organik Atık (kahverengi kutu). Bu renk kodlaması sistemi sayesinde herkes kolayca ayrıştırma yapabiliyor. Unutmayın, doğru ayrıştırma geri dönüşümün ilk adımı!"
+    "miniCorpus": "Sıfır Atık sisteminde 6 ana kategori bulunur: Plastik (sarı kutu), Metal (gri kutu), Kağıt (mavi kutu), Cam (yeşil kutu), Biyobozunur/Organik (kahverengi kutu) ve Diğer Atıklar (gri kutu). Bu renk kodlaması sistemi ile ayrıştırma kolaylaştırılır."
   },
   {
     "id": "q3",
     "type": "open",
     "question": "Sıfır Atık Projesi'nin başladığı 2017'den 2024'e kadar toplam kaç milyon ton atık geri dönüştürüldü?",
     "openEval": {
-      "keywordsAny": ["59", "elli dokuz", "60", "altmış", "59,9"],
+      "keywordsAny": ["59", "elli dokuz", "60", "altmış", "59,9", "59.9"],
       "regexAny": ["5[0-9]", "59"],
       "minHits": 1
     },
     "points": 20,
-    "miniCorpus": "Mükemmel! Toplam 59,9 milyon ton atığı geri dönüştürdük. Bu rakamın büyüklüğünü kavrayabiliyor musunuz? 29,3 milyon ton kağıt-karton, 7,8 milyon ton plastik, 2,9 milyon ton cam... Bu, milyonlarca ağacın kesilmesini önledi ve sera gazı emisyonlarını azalttı. Her bir atığın ayrıştırılması, geleceğe yapılan bir yatırım!"
+    "miniCorpus": "Toplam 59,9 milyon ton atık geri dönüştürüldü. Detay: 29,3 milyon ton kağıt-karton, 7,8 milyon ton plastik, 2,9 milyon ton cam, 3,7 milyon ton metal, 16,2 milyon ton organik ve diğer atıklar."
   },
   {
     "id": "q4",
@@ -49,19 +49,19 @@
     ],
     "correct": "B",
     "points": 10,
-    "miniCorpus": "Doğru! Sıfır Atık Belge Sistemi üç seviyeli: Temel, Orta ve İleri Seviye. Bu sistem sayesinde kurumlar kademeli olarak sıfır atık yönetimini öğreniyor ve uyguluyor. Şu anda 450'den fazla belediye bu sisteme dahil. Siz de kurumunuzda Sıfır Atık sistemini kurmayı düşünebilirsiniz!"
+    "miniCorpus": "Sıfır Atık Belge Sistemi üç seviyeli: Temel, Orta ve İleri Seviye. Kurumlar kademeli olarak sıfır atık yönetimini öğrenir ve uygular. 450'den fazla belediye bu sisteme dahil."
   },
   {
     "id": "q5",
     "type": "open",
-    "question": "Sıfır Atık Vakfı hangi yıl kuruldu ve amacı nedir?",
+    "question": "Sıfır Atık Projesi ile 7 yılda kaç milyon kişiye eğitim verilmiştir?",
     "openEval": {
-      "keywordsAny": ["2023", "iki bin yirmi üç", "sürdürülebilirlik", "kalıcılık"],
-      "regexAny": ["2023"],
+      "keywordsAny": ["25", "yirmi beş", "25 milyon", "yirmi beş milyon"],
+      "regexAny": ["2[0-9]", "25"],
       "minHits": 1
     },
     "points": 15,
-    "miniCorpus": "Harika! Sıfır Atık Vakfı 2023 yılında kuruldu. Bu vakıf, Sıfır Atık hareketinin sürdürülebilirliğini ve kalıcılığını sağlamak amacıyla oluşturulmuştur. Böylece bu değerli hareket gelecek nesillere aktarılacak ve Türkiye'nin çevre liderliği devam edecek."
+    "miniCorpus": "7 yılda 25 milyon kişiye eğitim verildi. Bu eğitimler projenin geniş kitlelere ulaşmasını ve farkındalık yaratmasını sağladı."
   },
   {
     "id": "q6",
@@ -75,7 +75,7 @@
     ],
     "correct": "B",
     "points": 15,
-    "miniCorpus": "Kesinlikle doğru! Emine Erdoğan Hanımefendi, Sıfır Atık Projesi ile BM Küresel Amaçlar Eylem Ödülü'ne layık görülmüştür. Ayrıca BM Sıfır Atık Yüksek Düzeyli Şahsiyetler Danışma Kurulu'nun başkanıdır. Bu, Türkiye'nin çevre alanındaki liderliğinin uluslararası tanınırlığıdır."
+    "miniCorpus": "Emine Erdoğan Hanımefendi BM Küresel Amaçlar Eylem Ödülü'ne layık görüldü. Ayrıca BM Sıfır Atık Yüksek Düzeyli Şahsiyetler Danışma Kurulu Başkanı ve BM Atık Alanında Akıllı Şehirler Küresel Şampiyonu ödülü sahibi."
   },
   {
     "id": "q7",
@@ -87,47 +87,46 @@
       "minHits": 1
     },
     "points": 10,
-    "miniCorpus": "Mükemmel! 2035 yılında yüzde 60 hedefimiz var, 2053'te ise yüzde 70'e çıkacağız. Şu anki yüzde 36'dan yüzde 60'a çıkmak büyük bir hedef ama Türkiye'nin kararlılığı ile kesinlikle başaracağız! Siz de bu hedefe ulaşmamızda önemli bir rol oynuyorsunuz."
+    "miniCorpus": "2035 yılı hedefi yüzde 60 geri dönüşüm oranı. 2053 yılında ise yüzde 70'e çıkarılması planlanıyor. Mevcut oran yüzde 36,08."
   },
   {
     "id": "q8",
     "type": "mcq",
-    "question": "Sıfır Atık Projesi kapsamında kaç kişiye eğitim verilmiştir?",
+    "question": "Sıfır Atık Projesi ile kaç binada Sıfır Atık Yönetim Sistemi kurulmuştur?",
     "options": [
-      "A) 10 milyon", 
-      "B) 15 milyon", 
-      "C) 25 milyon", 
-      "D) 30 milyon"
+      "A) 150 bin bina", 
+      "B) 193 bin bina", 
+      "C) 205 bin bina", 
+      "D) 250 bin bina"
     ],
-    "correct": "C",
+    "correct": "B",
     "points": 15,
-    "miniCorpus": "Harika! 7 yılda 25 milyon kişiye eğitim verildi. Bu rakam, projenin ne kadar geniş kitlelere ulaştığını ve farkındalık yarattığını gösteriyor. Her eğitim alan kişi çevresindeki insanlara örnek oluyor. Siz de bu yarışmayı tamamlayarak bu eğitimli kişiler arasına katıldınız!"
+    "miniCorpus": "193 bin binada Sıfır Atık Yönetim Sistemi kuruldu. Bu binalar kamu kurumları, özel sektör, okullar ve hastaneleri içeriyor."
   },
   {
     "id": "q9",
     "type": "open",
-    "question": "Sıfır Atık Projesi ile kaç binada Sıfır Atık Yönetim Sistemi kurulmuştur?",
+    "question": "Sıfır Atık Projesi ile ekonomiye kaç milyar lira değer kazandırılmıştır?",
     "openEval": {
-      "keywordsAny": ["205", "iki yüz beş", "200", "iki yüz"],
-      "regexAny": ["20[0-9]", "205"],
+      "keywordsAny": ["185", "yüz seksen beş", "180", "yüz seksen", "185 milyar"],
+      "regexAny": ["18[0-9]", "185"],
       "minHits": 1
     },
     "points": 20,
-    "miniCorpus": "Süper! 205 bin binada Sıfır Atık Yönetim Sistemi kuruldu. Kamu kurumları, özel sektör, okullar, hastaneler... Herkes bu harekete katıldı. Bu sayı her geçen gün artmaya devam ediyor. Belki siz de yaşadığınız binada veya çalıştığınız yerde bu sistemi kurulmasını önerebilirsiniz!"
+    "miniCorpus": "Sıfır Atık Projesi ile 7 yılda 185 milyar lira ekonomiye kazandırıldı. Bu değer istihdam yaratma, hammadde tasarrufu ve enerji verimliliğinden oluşuyor."
   },
   {
     "id": "q10",
     "type": "mcq",
-    "question": "Sıfır Atık hareketinin temel felsefesi nedir?",
+    "question": "30 Mart hangi özel gün olarak BM tarafından kabul edilmiştir?",
     "options": [
-      "A) Sadece geri dönüşüm", 
-      "B) İsrafın önlenmesi ve kaynakların verimli kullanımı", 
-      "C) Sadece atık toplama", 
-      "D) Çöp yakma"
+      "A) Dünya Su Günü", 
+      "B) Uluslararası Sıfır Atık Günü", 
+      "C) Dünya Çevre Günü", 
+      "D) Dünya Geri Dönüşüm Günü"
     ],
     "correct": "B",
     "points": 10,
-    "miniCorpus": "Kesinlikle doğru! Sıfır Atık, israfın önlenmesi, kaynakların daha verimli kullanılması ve atık oluşumunun minimize edilmesi felsefesidir. Bu sadece bir çevre hareketi değil, yaşam tarzıdır! Unutmayın, geleceğimiz bugün attığımız adımlarla şekilleniyor."
+    "miniCorpus": "30 Mart Birleşmiş Milletler tarafından 'Uluslararası Sıfır Atık Günü' olarak kabul edildi. Bu tarihte dünya çapında Sıfır Atık etkinlikleri düzenleniyor."
   }
 ]
-
