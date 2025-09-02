@@ -85,28 +85,33 @@ async function evaluateAnswerWithFullContext(
 
 ${SIFIR_ATIK_BILGI_BANKASI}
 
-🎯 DEĞERLENDİRME FELSEFESİ: ESNEK VE ADIL
+🎯 DEĞERLENDİRME FELSEFESİ: ADIL VE NET
 
 PUAN SİSTEMİ - JSON formatında döndür:
 {
-  "isCorrect": true/false, // 60+ puan varsa true
-  "points": 0-100, // Kısmi puan verebilirsin
+  "isCorrect": true/false,
+  "points": 0-100,
   "explanation": "Neden bu puanı verdiğini açıkla",
   "contextualInfo": "Sıfır Atık bağlamında ek bilgi"
 }
 
-📝 ÇOKTAN SEÇMELİ SORULAR:
-- Doğru harf: 100 puan
-- Doğru içerik kısmen: 80-100 puan  
-- Eksik ama açık: 70-90 puan
-- Yanlış harf ama doğru içerik: 60-80 puan
+🚨 PUANLAMA KURALLARI:
+- ÇOKTAN SEÇMELİ: Sadece 0 veya 100 puan (binary)
+- SAYISAL SORULAR: Kademeli puanlama (±2→90, ±5→80, ±10→60)
+
+📝 ÇOKTAN SEÇMELİ SORULAR - BİNARY PUANLAMA:
+- Doğru şık (harf veya içerik): 100 puan
+- Yanlış şık: 0 puan
+- ARADA PUAN YOK!
 
 ÖRNEKLER:
-✅ "B" → 100 puan (tam puan)
-✅ "B 6 kategori" → 100 puan (açık seçim)
-✅ "6 kategori plastik metal kağıt cam" → 80 puan (eksik ama doğru)
-✅ "altı kategori var" → 70 puan (genel doğru bilgi)
-❌ "3 kategori" → 0 puan (tamamen yanlış)
+✅ "B" → 100 puan
+✅ "B şıkkı" → 100 puan
+✅ "dört kategori" → 100 puan (doğru seçenek içeriği)
+✅ "temel orta ileri seviye" → 100 puan (doğru seçenek içeriği)
+❌ "A" → 0 puan (yanlış şık)
+❌ "üç kategori" → 0 puan (yanlış bilgi)
+❌ "beş kategori" → 0 puan (yanlış bilgi)
 
 📊 SAYISAL SORULAR:
 - Tam doğru: 100 puan
@@ -123,10 +128,23 @@ PUAN SİSTEMİ - JSON formatında döndür:
 ✅ "50 milyon" → 60 puan (9 fark)
 ❌ "30 milyon" → 0 puan (çok uzak)
 
-🎭 YAKLAŞIK İFADELER: Tam puan ver
-- "sanırım", "galiba", "civarı", "kadar", "yaklaşık"
+🚨 KRİTİK KURAL: SADECE GERÇEK CEVAPLARA PUAN VER!
 
-ÖNEMLİ: Kullanıcı doğru yönde düşünüyorsa MUTLAKA puan ver!`;
+❌ 0 PUAN VERECEĞİN DURUMLAR:
+- Soru soran: "hangi atıklar", "nasıl yapılır", "kim yürütüyor"
+- Yardım isteyen: "ipucu ver", "açıkla", "anlat"
+- Alakasız konuşma: "merhaba", "teşekkür", "güzel proje"
+- Meta konuşma: "sorum var", "merak ediyorum"
+
+✅ PUAN VERECEĞİN DURUMLAR:
+- Doğrudan cevap: "36", "B", "dört kategori"
+- Yaklaşık cevap: "otuz altı civarı", "sanırım B"
+- Belirsiz ama cevap: "galiba 36", "muhtemelen dört"
+
+🎭 YAKLAŞIK İFADELER: Tam puan ver (sadece gerçek cevapsa)
+- "sanırım 36", "galiba B", "civarı 60", "yaklaşık dört"
+
+ÖNEMLİ: Önce GERÇEK CEVAP mı kontrol et, sonra puan ver!`;
 
   // Soru tipine göre prompt hazırla
   let questionContext = `SORU ${currentQuestionIndex + 1}/10: ${question.question}\n`;
@@ -197,25 +215,30 @@ function fallbackEvaluationWithContext(question: Question, userAnswer: string): 
   const normalizedAnswer = userAnswer.toLowerCase().trim();
   let points = 0;
   
-  if (question.type === 'mcq') {
-    const correctLetter = question.correct?.toLowerCase();
-    const explicitLetterMention = new RegExp(`\\b${correctLetter}\\b`, 'i');
-    
-    if (explicitLetterMention.test(normalizedAnswer)) {
-      points = 100; // Tam puan
-    } else if (question.options && question.correct) {
-      const correctIndex = question.correct.charCodeAt(0) - 65;
-      const correctOption = question.options[correctIndex];
-      const optionWords = correctOption.toLowerCase().split(' ').filter(w => w.length > 3);
-      const matchedWords = optionWords.filter(word => normalizedAnswer.includes(word));
+      if (question.type === 'mcq') {
+      const correctLetter = question.correct?.toLowerCase();
+      const explicitLetterMention = new RegExp(`\\b${correctLetter}\\b`, 'i');
       
-      if (matchedWords.length >= 2) {
-        points = 80; // Güçlü eşleşme
-      } else if (matchedWords.length >= 1) {
-        points = 70; // Kısmi eşleşme
+      // Doğru harf kontrolü
+      if (explicitLetterMention.test(normalizedAnswer)) {
+        points = 100; // Tam puan
+      } else if (question.options && question.correct) {
+        // Doğru seçenek içeriği kontrolü
+        const correctIndex = question.correct.charCodeAt(0) - 65;
+        const correctOption = question.options[correctIndex];
+        const optionWords = correctOption.toLowerCase().split(' ').filter(w => w.length > 3);
+        const matchedWords = optionWords.filter(word => normalizedAnswer.includes(word));
+        
+        // MCQ'da sadece binary: Ya 100 ya 0
+        if (matchedWords.length >= 2) {
+          points = 100; // Doğru seçenek içeriği
+        } else {
+          points = 0; // Yeterli eşleşme yok
+        }
+      } else {
+        points = 0; // Hiçbir eşleşme yok
       }
-    }
-  } else if (question.type === 'open') {
+    } else if (question.type === 'open') {
     const keywords = question.openEval?.keywordsAny || [];
     const matchedKeywords = keywords.filter(keyword => {
       const keywordLower = keyword.toLowerCase();
@@ -297,7 +320,23 @@ function isValidQuestionAnswer(transcript: string, question: Question): { valid:
     return { valid: false, message: contextualResult.message || "Lütfen soruya cevap verin" };
   }
   
-  // 6. Meta konuşma tespiti (sadece belirsiz durumlarda)
+  // 6. İpucu isteme tespiti (ADIL YARIŞMA İÇİN)
+  const helpRequestWords = [
+    'ipucu', 'yardım', 'help', 'bilgi ver', 'açıkla', 'anlat', 'öğret',
+    'nasıl', 'nedir', 'ne demek', 'ne anlama', 'kim', 'nerede', 'ne zaman',
+    'hangi', 'kaç', 'sorum var', 'merak ediyorum', 'bilmek istiyorum',
+    'öğrenmek istiyorum', 'anlatır mısın', 'söyler misin'
+  ];
+  
+  const hasHelpRequest = helpRequestWords.some(word => lowerTranscript.includes(word));
+  if (hasHelpRequest) {
+    return { 
+      valid: false, 
+      message: "Adil bir yarışma olması için size yardımcı olamam. Lütfen kendi bilginizle soruyu cevaplayın!" 
+    };
+  }
+
+  // 7. Meta konuşma tespiti (sadece belirsiz durumlarda)
   if (lowerTranscript.length < 15) { // Kısa cevaplar için meta talk kontrolü
     const metaTalk = [
       'yarışma', 'başla', 'bitir', 'devam', 'geç', 'atla', 'geçelim',
@@ -882,13 +921,13 @@ async function handleEndQuiz(state: GameState): Promise<ToolCallResult> {
       console.log(`💾 Score saved for ${state.participant.name}: ${state.score} points`);
     }
     
-    // Session'ı temizle - 10 saniye sonra
+    // Session'ı temizle - DOĞA'nın final konuşmasını bitirmesi için 60 saniye bekle
     setTimeout(() => {
       if (gameStates.has(sessionId)) {
         gameStates.delete(sessionId);
-        console.log(`🧹 Session cleaned up: ${sessionId}`);
+        console.log(`🧹 Session cleaned up after final speech: ${sessionId}`);
       }
-    }, 10000);
+    }, 60000); // 1 dakika bekle ki DOĞA final konuşmasını bitirsin
     
     return {
       success: true,
