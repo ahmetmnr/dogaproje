@@ -9,6 +9,96 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// 📚 FEW-SHOT EXAMPLES FOR BETTER PROMPTING
+const MCQ_FEW_SHOT_EXAMPLES = `
+🔤 ÇOKTAN SEÇMELİ SORU ÖRNEKLERİ:
+
+ÖRNEK 1:
+Soru: Sıfır Atık sisteminde kaç ana kategori var?
+A) 3 kategori B) 4 kategori C) 6 kategori D) 8 kategori
+Doğru: C
+Kullanıcı: "galiba altı tane var"
+Değerlendirme: 100 puan (belirsizlik + doğru bilgi = tam puan)
+
+ÖRNEK 2: 
+Soru: Hangi kutu hangi atık için?
+A) Mavi=plastik B) Sarı=plastik C) Yeşil=plastik D) Kırmızı=plastik
+Doğru: B
+Kullanıcı: "B şıkkı ama aslında sarı kutu plastik için"
+Değerlendirme: 100 puan (düzeltme + doğru şık)
+
+ÖRNEK 3:
+Soru: Proje ne zaman başladı?
+A) 2015 B) 2017 C) 2019 D) 2020
+Doğru: B
+Kullanıcı: "sanırım 2018 civarı"
+Değerlendirme: 80 puan (yaklaşık ama tam doğru değil)
+`;
+
+const OPEN_ENDED_FEW_SHOT_EXAMPLES = `
+📝 AÇIK UÇLU SORU ÖRNEKLERİ:
+
+ÖRNEK 1:
+Soru: 2024'te geri dönüşüm oranı yüzde kaç?
+Doğru: 36,08
+Kullanıcı: "otuz altı falan"
+Değerlendirme: 90 puan (yaklaşık ifade + doğru rakam)
+
+ÖRNEK 2:
+Soru: Toplam kaç milyon ton atık geri dönüştürüldü?
+Doğru: 59,9 milyon
+Kullanıcı: "altmış milyon civarı"
+Değerlendirme: 95 puan (çok yakın tahmin)
+
+ÖRNEK 3:
+Soru: Kaç kişiye eğitim verildi?
+Doğru: 25 milyon
+Kullanıcı: "yirmi beş milyon kişi"
+Değerlendirme: 100 puan (tam doğru)
+`;
+
+const TURKISH_LANGUAGE_FEW_SHOT_EXAMPLES = `
+🇹🇷 TÜRKÇE DİL ÖZELLİKLERİ:
+
+Belirsizlik ifadeleri = POZITIF:
+- "galiba", "sanırım", "herhalde" + doğru cevap = TAM PUAN
+- "civarı", "falan", "kadar" + yakın sayı = YÜKSEK PUAN
+
+Yakınlık ifadeleri:
+- "otuz altı falan" (36 için) = 90 puan
+- "altmış civarı" (59,9 için) = 95 puan
+- "iki bin on yedi gibi" (2017 için) = 100 puan
+`;
+
+const EDGE_CASE_FEW_SHOT_EXAMPLES = `
+⚠️ ÖZEL DURUMLAR:
+
+Çelişkili cevaplar:
+Kullanıcı: "A dedim ama B doğru"
+→ Düzeltmeyi dikkate al, B'ye göre puanla
+
+Kısmi bilgi:
+Kullanıcı: "altı tane kategori var ama renklerini bilmiyorum"
+→ Bildikleri kısım için puan ver
+
+Çok yakın rakamlar:
+35 vs 36 → 90 puan
+58 vs 59,9 → 95 puan
+2016 vs 2017 → 80 puan
+`;
+
+const CONSISTENCY_CALIBRATION_EXAMPLES = `
+🎯 TUTARLILIK KALİBRASYONU:
+
+Aynı tip sorular için aynı puanlama:
+- "otuz altı" = 100 puan
+- "36" = 100 puan  
+- "otuz altı falan" = 90 puan
+- "otuz beş" = 90 puan
+- "kırk" = 60 puan
+- "yirmi" = 0 puan
+`;
+
 // 🌿 SIFIR ATIK PROJESİ GENEL BİLGİ BANKASI
 const SIFIR_ATIK_BILGI_BANKASI = `
 🌿 SIFIR ATIK PROJESİ GENEL BİLGİ BANKASI:
@@ -32,7 +122,7 @@ const SIFIR_ATIK_BILGI_BANKASI = `
 🗂️ ATIK KATEGORİLERİ:
 - Kağıt-Karton (Mavi kutu)
 - Plastik-Metal (Sarı kutu) 
-- Cam (Beyaz kutu)
+- Cam (Yeşil kutu)
 - Organik Atık (Kahverengi kutu)
 
 📈 DETAYLI GERİ DÖNÜŞÜM RAKAMLARI:
@@ -73,84 +163,75 @@ const SIFIR_ATIK_BILGI_BANKASI = `
 async function evaluateAnswerWithFullContext(
   question: Question, 
   userAnswer: string,
+  selectedOption: string | null,
   currentQuestionIndex: number
 ): Promise<{
   isCorrect: boolean;
   points: number;
   explanation: string;
   contextualInfo: string;
+  confidence: number;
+  reasoning: string;
 }> {
+  const startTime = Date.now();
+  console.log(`⏱️ [${startTime}] evaluateAnswerWithFullContext STARTED`);
+  
+  // Soru tipine göre uygun few-shot örnekleri seç
+  let specificExamples = '';
+  if (question.type === 'mcq') {
+    specificExamples = MCQ_FEW_SHOT_EXAMPLES;
+  } else if (question.type === 'open') {
+    specificExamples = OPEN_ENDED_FEW_SHOT_EXAMPLES;
+  }
   
   const systemPrompt = `Sen Sıfır Atık Projesi uzmanı bir değerlendirme asistanısın.
 
 ${SIFIR_ATIK_BILGI_BANKASI}
 
-🎯 DEĞERLENDİRME FELSEFESİ: ADIL VE NET
+🎯 DEĞERLENDİRME FELSEFESİ: ADIL, TUTARLI VE ESNEK
 
-PUAN SİSTEMİ - JSON formatında döndür:
+${specificExamples}
+
+${TURKISH_LANGUAGE_FEW_SHOT_EXAMPLES}
+
+${EDGE_CASE_FEW_SHOT_EXAMPLES}
+
+${CONSISTENCY_CALIBRATION_EXAMPLES}
+
+📋 GELİŞMİŞ DEĞERLENDİRME ADIMLARI:
+1. Kullanıcı cevabını normalize et (büyük/küçük harf, noktalama)
+2. Eğer MCQ ise selectedOption ile transcript'i karşılaştır
+3. Türkçe dil özelliklerini tanı (belirsizlik, yakınlık ifadeleri)
+4. Soru tipini belirle ve uygun few-shot örnekleri kullan
+5. Tutarlı puanlama uygula
+6. Güven skorunu hesapla
+7. Detaylı reasoning sağla
+
+🔤 ÇOKTAN SEÇMELİ ÖZEL KURALLAR:
+- Eğer selectedOption var ise, önce bunu değerlendir
+- Transcript ile selectedOption çelişiyorsa, transcript'i öncelikle
+- "A şıkkı ama aslında B doğru" gibi düzeltmeleri destekle
+- Belirsizlik ifadeleri + doğru şık = tam puan
+
+ÇIKTI FORMATI - JSON formatında döndür:
 {
   "isCorrect": true/false,
   "points": 0-100,
-  "explanation": "Neden bu puanı verdiğini açıkla",
-  "contextualInfo": "Sıfır Atık bağlamında ek bilgi"
-}
-
-🚨 PUANLAMA KURALLARI:
-- ÇOKTAN SEÇMELİ: Sadece 0 veya 100 puan (binary)
-- SAYISAL SORULAR: Kademeli puanlama (±2→90, ±5→80, ±10→60)
-
-📝 ÇOKTAN SEÇMELİ SORULAR - BİNARY PUANLAMA:
-- Doğru şık (harf veya içerik): 100 puan
-- Yanlış şık: 0 puan
-- ARADA PUAN YOK!
-
-ÖRNEKLER:
-✅ "B" → 100 puan
-✅ "B şıkkı" → 100 puan
-✅ "dört kategori" → 100 puan (doğru seçenek içeriği)
-✅ "temel orta ileri seviye" → 100 puan (doğru seçenek içeriği)
-❌ "A" → 0 puan (yanlış şık)
-❌ "üç kategori" → 0 puan (yanlış bilgi)
-❌ "beş kategori" → 0 puan (yanlış bilgi)
-
-📊 SAYISAL SORULAR:
-- Tam doğru: 100 puan
-- ±2 fark: 90 puan
-- ±5 fark: 80 puan
-- ±10 fark: 60 puan
-- Daha fazla: 0 puan
-
-ÖRNEKLER (Doğru: 59 milyon):
-✅ "59 milyon" → 100 puan
-✅ "58 milyon" → 90 puan (1 fark)
-✅ "60 milyon" → 90 puan (1 fark)
-✅ "55 milyon" → 80 puan (4 fark)
-✅ "50 milyon" → 60 puan (9 fark)
-❌ "30 milyon" → 0 puan (çok uzak)
-
-🚨 KRİTİK KURAL: SADECE GERÇEK CEVAPLARA PUAN VER!
-
-❌ 0 PUAN VERECEĞİN DURUMLAR:
-- Soru soran: "hangi atıklar", "nasıl yapılır", "kim yürütüyor"
-- Yardım isteyen: "ipucu ver", "açıkla", "anlat"
-- Alakasız konuşma: "merhaba", "teşekkür", "güzel proje"
-- Meta konuşma: "sorum var", "merak ediyorum"
-
-✅ PUAN VERECEĞİN DURUMLAR:
-- Doğrudan cevap: "36", "B", "dört kategori"
-- Yaklaşık cevap: "otuz altı civarı", "sanırım B"
-- Belirsiz ama cevap: "galiba 36", "muhtemelen dört"
-
-🎭 YAKLAŞIK İFADELER: Tam puan ver (sadece gerçek cevapsa)
-- "sanırım 36", "galiba B", "civarı 60", "yaklaşık dört"
-
-ÖNEMLİ: Önce GERÇEK CEVAP mı kontrol et, sonra puan ver!`;
+  "explanation": "Detaylı açıklama",
+  "contextualInfo": "Sıfır Atık bağlamında ek bilgi",
+  "confidence": 0.0-1.0,
+  "reasoning": "Puanlama mantığını açıkla"
+}`;
 
   // Soru tipine göre prompt hazırla
   let questionContext = `SORU ${currentQuestionIndex + 1}/10: ${question.question}\n`;
   
   if (question.type === 'mcq' && question.options) {
     questionContext += `\nSEÇENEKLER:\n${question.options.join('\n')}\nDOĞRU CEVAP: ${question.correct}\n`;
+    
+    if (selectedOption) {
+      questionContext += `\nSEÇİLEN ŞIKK: ${selectedOption}\n`;
+    }
   }
   
   if (question.openEval?.keywordsAny) {
@@ -163,11 +244,17 @@ PUAN SİSTEMİ - JSON formatında döndür:
 
   const userPrompt = `${questionContext}
 
-KULLANICI CEVABI: "${userAnswer}"
+KULLANICI SESLİ CEVABI: "${userAnswer}"
+${selectedOption ? `SEÇİLEN ŞIKK: "${selectedOption}"` : ''}
 
-Bu cevabı Sıfır Atık bilgi bankası ve soru-spesifik bilgiler ışığında değerlendir: birebir aynı olmasa da kullanıcı doğru cevaba yakın bir şey söylemişs doğru kabul et ve bunu da söyle `;
+Bu cevabı Sıfır Atık bilgi bankası ve soru-spesifik bilgiler ışığında değerlendir. 
+Eğer hem sesli cevap hem seçilen şık varsa, ikisini de dikkate al.
+Çelişki durumunda sesli cevabı öncelikle ama kullanıcının düzeltme yapmaya çalıştığını anla.`;
 
   try {
+    const apiCallStart = Date.now();
+    console.log(`⏱️ [${apiCallStart}] OpenAI API call STARTED`);
+    
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -175,8 +262,11 @@ Bu cevabı Sıfır Atık bilgi bankası ve soru-spesifik bilgiler ışığında 
         { role: 'user', content: userPrompt }
       ],
       response_format: { type: "json_object" },
-      max_tokens: 300
+      max_tokens: 400
     });
+    
+    const apiCallEnd = Date.now();
+    console.log(`⏱️ [${apiCallEnd}] OpenAI API call COMPLETED (${apiCallEnd - apiCallStart}ms)`);
 
     const result = JSON.parse(response.choices[0]?.message?.content || '{}');
     
@@ -184,81 +274,35 @@ Bu cevabı Sıfır Atık bilgi bankası ve soru-spesifik bilgiler ışığında 
     const points = Math.max(0, Math.min(100, result.points || 0));
     const isCorrect = points >= 60; // 60+ puan = doğru
     
-    console.log(`🤖 Esnek Değerlendirme:`);
+    console.log(`🤖 Gelişmiş Değerlendirme:`);
     console.log(`📝 Question ${currentQuestionIndex + 1}: "${question.question}"`);
     console.log(`👤 User Answer: "${userAnswer}"`);
+    console.log(`🔤 Selected Option: "${selectedOption || 'None'}"`);
     console.log(`🎯 Result: ${isCorrect ? 'CORRECT' : 'INCORRECT'} (${points}/100 puan)`);
     console.log(`💡 Explanation: ${result.explanation}`);
+    console.log(`🧠 Reasoning: ${result.reasoning}`);
+    
+    const endTime = Date.now();
+    console.log(`⏱️ [${endTime}] evaluateAnswerWithFullContext COMPLETED (${endTime - startTime}ms total)`);
     
     return {
       isCorrect: isCorrect,
       points: points,
       explanation: result.explanation || 'Değerlendirme tamamlandı',
-      contextualInfo: result.contextualInfo || ''
+      contextualInfo: result.contextualInfo || '',
+      confidence: result.confidence || 0.8,
+      reasoning: result.reasoning || 'Standart değerlendirme uygulandı'
     };
     
   } catch (error) {
-    console.error('❌ Full context evaluation failed:', error);
+    const errorTime = Date.now();
+    console.error(`❌ [${errorTime}] Full context evaluation failed (${errorTime - startTime}ms):`, error);
     
-    // Fallback: Basit değerlendirme
-    return fallbackEvaluationWithContext(question, userAnswer);
+    // Değerlendirme başarısız oldu - kullanıcıdan tekrar cevap istenecek
+    throw new Error(`LLM değerlendirmesi başarısız oldu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`);
   }
 }
 
-// Fallback değerlendirme sistemi
-function fallbackEvaluationWithContext(question: Question, userAnswer: string): {
-  isCorrect: boolean;
-  points: number;
-  explanation: string;
-  contextualInfo: string;
-} {
-  const normalizedAnswer = userAnswer.toLowerCase().trim();
-  let points = 0;
-  
-      if (question.type === 'mcq') {
-      const correctLetter = question.correct?.toLowerCase();
-      const explicitLetterMention = new RegExp(`\\b${correctLetter}\\b`, 'i');
-      
-      // Doğru harf kontrolü
-      if (explicitLetterMention.test(normalizedAnswer)) {
-        points = 100; // Tam puan
-      } else if (question.options && question.correct) {
-        // Doğru seçenek içeriği kontrolü
-        const correctIndex = question.correct.charCodeAt(0) - 65;
-        const correctOption = question.options[correctIndex];
-        const optionWords = correctOption.toLowerCase().split(' ').filter(w => w.length > 3);
-        const matchedWords = optionWords.filter(word => normalizedAnswer.includes(word));
-        
-        // MCQ'da sadece binary: Ya 100 ya 0
-        if (matchedWords.length >= 2) {
-          points = 100; // Doğru seçenek içeriği
-        } else {
-          points = 0; // Yeterli eşleşme yok
-        }
-      } else {
-        points = 0; // Hiçbir eşleşme yok
-      }
-    } else if (question.type === 'open') {
-    const keywords = question.openEval?.keywordsAny || [];
-    const matchedKeywords = keywords.filter(keyword => {
-      const keywordLower = keyword.toLowerCase();
-      return normalizedAnswer.includes(keywordLower);
-    });
-    
-    if (matchedKeywords.length > 0) {
-      points = 100; // Anahtar kelime eşleşti
-    }
-  }
-  
-  const isCorrect = points >= 60;
-  
-  return {
-    isCorrect,
-    points,
-    explanation: isCorrect ? `Fallback sistemi ile ${points}/100 puan` : 'Fallback sistemi ile yetersiz puan',
-    contextualInfo: 'Sıfır Atık Projesi kapsamında değerlendirildi'
-  };
-}
 
 // Hybrid akıllı cevap filtreleme fonksiyonu
 function isValidQuestionAnswer(transcript: string, question: Question): { valid: boolean; message?: string } {
@@ -447,16 +491,31 @@ const fileCache = new Map<string, { data: any; timestamp: number; ttl: number }>
 const DEFAULT_CACHE_TTL = 5 * 60 * 1000; // 5 dakika
 
 async function getCachedFile<T>(filePath: string, parser: (data: string) => T, ttl = DEFAULT_CACHE_TTL): Promise<T> {
+  const startTime = Date.now();
+  console.log(`⏱️ [${startTime}] getCachedFile STARTED for: ${filePath}`);
+  
   const now = Date.now();
   const cached = fileCache.get(filePath);
   
   if (cached && (now - cached.timestamp) < cached.ttl) {
+    console.log(`⏱️ [${now}] getCachedFile CACHE HIT (${now - startTime}ms)`);
     return cached.data;
   }
   
   try {
+    const fileReadStart = Date.now();
+    console.log(`⏱️ [${fileReadStart}] File system read STARTED`);
+    
     const fileData = await fs.readFile(filePath, 'utf-8');
+    
+    const fileReadEnd = Date.now();
+    console.log(`⏱️ [${fileReadEnd}] File system read COMPLETED (${fileReadEnd - fileReadStart}ms)`);
+    
+    const parseStart = Date.now();
     const parsedData = parser(fileData);
+    
+    const parseEnd = Date.now();
+    console.log(`⏱️ [${parseEnd}] JSON parsing COMPLETED (${parseEnd - parseStart}ms)`);
     
     fileCache.set(filePath, {
       data: parsedData,
@@ -464,9 +523,13 @@ async function getCachedFile<T>(filePath: string, parser: (data: string) => T, t
       ttl
     });
     
+    const endTime = Date.now();
+    console.log(`⏱️ [${endTime}] getCachedFile COMPLETED (${endTime - startTime}ms total)`);
+    
     return parsedData;
   } catch (error) {
-    console.error(`Error reading file ${filePath}:`, error);
+    const errorTime = Date.now();
+    console.error(`⏱️ [${errorTime}] getCachedFile ERROR (${errorTime - startTime}ms):`, error);
     throw error;
   }
 }
@@ -507,14 +570,19 @@ async function executeWithTimeout<T>(
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
+  console.log(`⏱️ [${startTime}] POST REQUEST STARTED`);
   
   try {
     // Cleanup expired states periodically
     if (Math.random() < 0.1) { // 10% chance to run cleanup
+      const cleanupStart = Date.now();
       cleanupExpiredStates();
+      console.log(`⏱️ [${Date.now()}] Cleanup COMPLETED (${Date.now() - cleanupStart}ms)`);
     }
     
+    const parseStart = Date.now();
     const { tool, parameters, sessionId } = await req.json();
+    console.log(`⏱️ [${Date.now()}] Request parsing COMPLETED (${Date.now() - parseStart}ms)`);
     
     console.log(`🛠️ Tool call: ${tool}`, parameters);
     
@@ -524,13 +592,28 @@ export async function POST(req: NextRequest) {
 
     // State'i al veya oluştur
     if (!gameStates.has(sessionId)) {
+      // İlk kez oluşturuluyorsa questions'ları yükle
+      const questionsPath = path.join(process.cwd(), 'data', 'questions.json');
+      let questionsData: Question[] = [];
+      try {
+        questionsData = await getCachedFile(
+          questionsPath, 
+          (data) => JSON.parse(data) as Question[]
+        );
+      } catch (error) {
+        console.error('Error loading questions for new session:', error);
+      }
+
       gameStates.set(sessionId, {
         sessionId,
         participant: null,
         currentQuestionIndex: 0,
-        score: 0,
+        totalScore: 0,
+        questionsData: questionsData,
         answers: [],
         status: 'waiting',
+        startTime: null,
+        endTime: null,
         lastActivity: Date.now()
       });
     }
@@ -541,6 +624,9 @@ export async function POST(req: NextRequest) {
     let result: ToolCallResult;
 
     // Execute tool with timeout protection
+    const toolExecutionStart = Date.now();
+    console.log(`⏱️ [${toolExecutionStart}] Tool execution STARTED: ${tool}`);
+    
     switch (tool) {
       case 'start_quiz':
         result = await executeWithTimeout(handleStartQuiz(state, parameters), 5000, tool);
@@ -569,11 +655,15 @@ export async function POST(req: NextRequest) {
       default:
         result = { success: false, message: `Bilinmeyen tool: ${tool}` };
     }
+    
+    const toolExecutionEnd = Date.now();
+    console.log(`⏱️ [${toolExecutionEnd}] Tool execution COMPLETED: ${tool} (${toolExecutionEnd - toolExecutionStart}ms)`);
 
     // State'i güncelle
     gameStates.set(sessionId, state);
     
     const executionTime = Date.now() - startTime;
+    console.log(`⏱️ [${Date.now()}] POST REQUEST COMPLETED (${executionTime}ms total)`);
     console.log(`✅ Tool result (${executionTime}ms):`, result);
     
     // Add performance metrics to response
@@ -602,34 +692,63 @@ export async function POST(req: NextRequest) {
 }
 
 async function handleStartQuiz(state: GameState, { userInfo }: any): Promise<ToolCallResult> {
-  console.log('🎯 Starting quiz for:', userInfo?.name);
+  const startTime = Date.now();
+  console.log(`⏱️ [${startTime}] handleStartQuiz STARTED for:`, userInfo?.name);
   
+  // Kullanıcı bilgilerini kaydet
   state.participant = userInfo;
   state.status = 'intro';
   state.currentQuestionIndex = 0;
-  state.score = 0;
+  state.totalScore = 0;
   state.answers = [];
+  state.startTime = new Date().toISOString();
+  
+  // Questions.json'ı yükle ve state'e kopyala
+  const questionsPath = path.join(process.cwd(), 'data', 'questions.json');
+  const originalQuestions: Question[] = await getCachedFile(
+    questionsPath, 
+    (data) => JSON.parse(data) as Question[]
+  );
+  
+  // Her kullanıcı için fresh question state'i oluştur
+  state.questionsData = originalQuestions.map(q => ({
+    ...q,
+    isAnswered: false,
+    userAnswer: null,
+    selectedOption: null,
+    userScore: null,
+    attemptCount: 0,
+    lastAttemptTime: null
+  }));
+  
+  console.log(`✨ Fresh question state created for user: ${userInfo?.name}, ${state.questionsData.length} questions loaded`);
   
   return {
     success: true,
-    message: "Yarışma başlatıldı! Tanıtım yapılıyor ve ilk soruya geçiliyor."
+    message: "Yarışma başlatıldı! Kullanıcıya özel soru seti hazırlandı.",
+    totalQuestions: state.questionsData.length
   };
 }
 
 async function handleGetQuestion(state: GameState): Promise<ToolCallResult> {
+  const startTime = Date.now();
+  console.log(`⏱️ [${startTime}] handleGetQuestion STARTED`);
+  
   try {
-    const questionsPath = path.join(process.cwd(), 'data', 'questions.json');
-    const questions: Question[] = await getCachedFile(
-      questionsPath, 
-      (data) => JSON.parse(data) as Question[]
-    );
+    // State'deki questions array'ini kullan
+    if (!state.questionsData || state.questionsData.length === 0) {
+      return {
+        success: false,
+        message: "Sorular yüklenmemiş, lütfen yarışmayı yeniden başlatın"
+      };
+    }
     
     // İlk soru için index 0'dan başla
     if (state.currentQuestionIndex === -1) {
       state.currentQuestionIndex = 0;
     }
     
-    if (state.currentQuestionIndex >= questions.length) {
+    if (state.currentQuestionIndex >= state.questionsData.length) {
       return {
         success: false,
         message: "Tüm sorular tamamlandı",
@@ -637,36 +756,45 @@ async function handleGetQuestion(state: GameState): Promise<ToolCallResult> {
       };
     }
     
-    const currentQuestion = questions[state.currentQuestionIndex];
+    const currentQuestion = state.questionsData[state.currentQuestionIndex];
     state.status = 'playing';
     
+    // Soru durumunu kontrol et
+    const questionStatus = {
+      isAnswered: currentQuestion.isAnswered,
+      attemptCount: currentQuestion.attemptCount,
+      previousAnswer: currentQuestion.userAnswer
+    };
+    
     console.log(`📝 Question ${state.currentQuestionIndex + 1}:`, currentQuestion.question);
+    console.log(`📊 Question Status:`, questionStatus);
+    
+    const endTime = Date.now();
+    console.log(`⏱️ [${endTime}] handleGetQuestion COMPLETED (${endTime - startTime}ms total)`);
     
     return {
       success: true,
       question: currentQuestion,
       questionIndex: state.currentQuestionIndex,
-      message: `Soru ${state.currentQuestionIndex + 1}/10 hazır`
+      questionStatus: questionStatus,
+      message: `Soru ${state.currentQuestionIndex + 1}/${state.questionsData.length} hazır`
     };
     
   } catch (error) {
-    console.error('Error loading questions:', error);
+    console.error('Error loading question from state:', error);
     return {
       success: false,
-      message: "Sorular yüklenirken hata oluştu"
+      message: "Soru yüklenirken hata oluştu"
     };
   }
 }
 
 async function handleGradeAnswer(state: GameState, parameters: any): Promise<ToolCallResult> {
+  const startTime = Date.now();
+  console.log(`⏱️ [${startTime}] handleGradeAnswer STARTED`);
+  
   try {
-    const questionsPath = path.join(process.cwd(), 'data', 'questions.json');
-    const questions: Question[] = await getCachedFile(
-      questionsPath, 
-      (data) => JSON.parse(data) as Question[]
-    );
-    
-    const currentQuestion = questions[state.currentQuestionIndex];
+    const currentQuestion = state.questionsData[state.currentQuestionIndex];
     if (!currentQuestion) {
       return {
         success: false,
@@ -674,8 +802,9 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
       };
     }
     
-    // Transcript parametresini güvenli şekilde al
+    // Transcript ve selectedOption parametrelerini al
     const transcript = parameters.transcript || parameters.userAnswer || '';
+    const selectedOption = parameters.selectedOption || null;
     
     // Eğer transcript boş veya çok kısa ise, değerlendirme yapma
     if (!transcript || transcript.trim().length < 2) {
@@ -685,99 +814,134 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
       };
     }
     
-    // AKILLI FİLTRELEME - Gerçek cevap mı kontrol et
-    const isValidAnswer = isValidQuestionAnswer(transcript, currentQuestion);
-    if (!isValidAnswer.valid) {
+    // Soru zaten cevaplanmış mı kontrol et
+    if (currentQuestion.isAnswered) {
       return {
         success: false,
-        message: isValidAnswer.message || "Lütfen soruya cevap verin"
+        message: "Bu soruya zaten cevap verdiniz",
+        alreadyAnswered: true,
+        previousAnswer: currentQuestion.userAnswer,
+        previousScore: currentQuestion.userScore
       };
     }
     
-    let isCorrect = false;
-    const normalizedAnswer = transcript.toLowerCase().trim();
+    // Çok fazla deneme yapılmış mı kontrol et
+    if (currentQuestion.attemptCount >= 3) {
+      return {
+        success: false,
+        message: "Bu soru için maksimum deneme sayısına ulaştınız"
+      };
+    }
+    
+    // AKILLI FİLTRELEME - Gerçek cevap mı kontrol et
+    const filterStart = Date.now();
+    console.log(`⏱️ [${filterStart}] Answer filtering STARTED`);
+    
+    const isValidAnswer = isValidQuestionAnswer(transcript, currentQuestion);
+    if (!isValidAnswer.valid) {
+      // Deneme sayısını artır ama cevap olarak kaydetme
+      currentQuestion.attemptCount++;
+      currentQuestion.lastAttemptTime = new Date().toISOString();
+      
+      const filterEnd = Date.now();
+      console.log(`⏱️ [${filterEnd}] Answer filtering REJECTED (${filterEnd - filterStart}ms) - ${isValidAnswer.message}`);
+      return {
+        success: false,
+        message: isValidAnswer.message || "Lütfen soruya cevap verin",
+        attemptCount: currentQuestion.attemptCount
+      };
+    }
+    
+    const filterEnd = Date.now();
+    console.log(`⏱️ [${filterEnd}] Answer filtering PASSED (${filterEnd - filterStart}ms)`);
     
     console.log(`🎯 Grading answer: "${transcript}" for question:`, currentQuestion.id);
     
-    // ✅ FULL CONTEXT AI DEĞERLENDİRME - İki katmanlı hibrit sistem
+    // Hibrit değerlendirme sistemi
+    const evaluationStart = Date.now();
+    console.log(`⏱️ [${evaluationStart}] AI Evaluation STARTED`);
     console.log(`🧠 Hibrit Değerlendirme - Question: "${currentQuestion.question}", User: "${transcript}"`);
     
     let evaluation;
     try {
       evaluation = await evaluateAnswerWithFullContext(
         currentQuestion, 
-        transcript, 
+        transcript,
+        selectedOption,
         state.currentQuestionIndex
       );
-      isCorrect = evaluation.isCorrect;
-      console.log(`🎯 Hibrit Evaluation Result: ${isCorrect ? 'CORRECT' : 'INCORRECT'} (${evaluation.points}/100 puan)`);
-    } catch (error) {
-      console.error('❌ Hibrit evaluation failed, using fallback:', error);
       
-      evaluation = fallbackEvaluationWithContext(currentQuestion, transcript);
-      isCorrect = evaluation.isCorrect;
-      console.log(`🔄 Fallback Result: ${isCorrect ? 'CORRECT' : 'INCORRECT'} (${evaluation.points}/100 puan)`);
-    }
-    
-    // Bu soruya daha önce BAŞARILI cevap verilmiş mi kontrol et
-    const successfullyAnswered = state.answers.some(answer => 
-      answer.questionId === currentQuestion.id && 
-      answer.correct === true
-    );
-    if (successfullyAnswered) {
-      console.log(`⚠️ Question ${currentQuestion.id} already answered correctly, ignoring duplicate`);
+      const evaluationEnd = Date.now();
+      console.log(`⏱️ [${evaluationEnd}] AI Evaluation COMPLETED (${evaluationEnd - evaluationStart}ms)`);
+      console.log(`🎯 Hibrit Evaluation Result: ${evaluation.isCorrect ? 'CORRECT' : 'INCORRECT'} (${evaluation.points}/100 puan)`);
+    } catch (error) {
+      const errorEnd = Date.now();
+      console.error(`❌ [${errorEnd}] LLM evaluation failed (${errorEnd - evaluationStart}ms):`, error);
+      
+      // LLM değerlendirmesi başarısız - kullanıcıdan cevabı tekrar istemek
       return {
         success: false,
-        message: "Bu soruya zaten doğru cevap verdiniz"
+        message: "Cevabınız değerlendirilemedi. Lütfen cevabınızı tekrar söyleyin.",
+        needsRetry: true
       };
     }
     
-    // Aynı soruya çok fazla yanlış cevap verilmişse (spam koruması)
-    const wrongAnswerCount = state.answers.filter(answer => 
-      answer.questionId === currentQuestion.id && 
-      answer.correct === false
-    ).length;
-    if (wrongAnswerCount >= 3) {
-      console.log(`⚠️ Question ${currentQuestion.id} has too many wrong attempts, blocking further attempts`);
-      return {
-        success: false,
-        message: "Bu soruya çok fazla yanlış cevap verdiniz, sonraki soruya geçelim"
-      };
-    }
     
     // Kısmi puan hesaplama sistemi
     const maxPoints = currentQuestion.points;
     const earnedPoints = Math.round((evaluation.points / 100) * maxPoints);
-    state.score += earnedPoints;
+    state.totalScore += earnedPoints;
     
-    // Cevabı kaydet (genişletilmiş)
+    // Cevabı kaydet (genişletilmiş) - Backward compatibility için
     state.answers.push({
       questionId: currentQuestion.id,
       answer: transcript,
-      correct: isCorrect,
+      correct: evaluation.isCorrect,
       points: earnedPoints,
       maxPoints: maxPoints,
       percentage: evaluation.points
     });
     
-    console.log(`📊 Answer graded: ${isCorrect ? 'CORRECT' : 'PARTIAL/INCORRECT'}, Points: ${earnedPoints}/${maxPoints} (${evaluation.points}%), Total: ${state.score}`);
+    // Soruyu cevaplandı olarak işaretle ve bilgileri kaydet
+    currentQuestion.isAnswered = true;
+    currentQuestion.userAnswer = transcript;
+    currentQuestion.selectedOption = selectedOption;
+    currentQuestion.userScore = earnedPoints;
+    currentQuestion.attemptCount++;
+    currentQuestion.lastAttemptTime = new Date().toISOString();
+    
+    // Güncellenmiş soruları dosyaya kaydet
+    try {
+      const questionsPath = path.join(process.cwd(), 'data', 'questions.json');
+      await fs.writeFile(questionsPath, JSON.stringify(state.questionsData, null, 2));
+      console.log(`💾 Question ${currentQuestion.id} updated: isAnswered=true, userAnswer="${transcript}", userScore=${earnedPoints}, attemptCount=${currentQuestion.attemptCount}`);
+    } catch (error) {
+      console.error('Error updating questions file:', error);
+    }
+    
+    console.log(`📊 Answer graded: ${evaluation.isCorrect ? 'CORRECT' : 'PARTIAL/INCORRECT'}, Points: ${earnedPoints}/${maxPoints} (${evaluation.points}%), Total: ${state.totalScore}`);
     
     // Açıklama: miniCorpus + AI contextual info + hibrit explanation
     const fullExplanation = currentQuestion.miniCorpus + 
       (evaluation?.contextualInfo ? ` ${evaluation.contextualInfo}` : '') +
       (evaluation?.explanation ? ` (${evaluation.explanation})` : '');
 
+    const endTime = Date.now();
+    console.log(`⏱️ [${endTime}] handleGradeAnswer COMPLETED (${endTime - startTime}ms total)`);
+    
     return {
       success: true,
-      correct: isCorrect,
+      correct: evaluation.isCorrect,
       points: earnedPoints,
       maxPoints: maxPoints,
       percentage: evaluation.points,
-      score: state.score,
+      score: state.totalScore,
       explanation: fullExplanation,
       questionIndex: state.currentQuestionIndex,
-      message: `Cevap değerlendirildi: ${isCorrect ? 'Doğru' : 'Kısmi/Yanlış'} (${evaluation.points}/100)`,
-      confidence: evaluation.points
+      message: `Cevap değerlendirildi: ${evaluation.isCorrect ? 'Doğru' : 'Kısmi/Yanlış'} (${evaluation.points}/100)`,
+      confidence: evaluation.confidence,
+      reasoning: evaluation.reasoning,
+      questionNowAnswered: true
     };
     
   } catch (error) {
@@ -790,41 +954,67 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
 }
 
 async function handleNextQuestion(state: GameState): Promise<ToolCallResult> {
+  const startTime = Date.now();
+  console.log(`⏱️ [${startTime}] handleNextQuestion STARTED`);
+  
   try {
-    const questionsPath = path.join(process.cwd(), 'data', 'questions.json');
-    const questions: Question[] = await getCachedFile(
-      questionsPath, 
-      (data) => JSON.parse(data) as Question[]
-    );
+    // Mevcut sorunun cevaplanıp cevaplanmadığını kontrol et
+    const currentQuestion = state.questionsData[state.currentQuestionIndex];
+    if (!currentQuestion.isAnswered) {
+      return {
+        success: false,
+        message: "Mevcut soru henüz cevaplanmadı"
+      };
+    }
     
     state.currentQuestionIndex++;
     
-    console.log(`➡️ Moving to question ${state.currentQuestionIndex + 1}/${questions.length}`);
+    console.log(`➡️ Moving to question ${state.currentQuestionIndex + 1}/${state.questionsData.length}`);
     
-    if (state.currentQuestionIndex >= questions.length) {
+    if (state.currentQuestionIndex >= state.questionsData.length) {
       // Tüm sorular tamamlandı
       state.status = 'finished';
+      state.endTime = new Date().toISOString();
+      
+      // Özet istatistikler
+      const answeredQuestions = state.questionsData.filter(q => q.isAnswered).length;
+      const totalAttempts = state.questionsData.reduce((sum, q) => sum + q.attemptCount, 0);
+      const averageScore = state.totalScore / state.questionsData.length;
+      
       return {
         success: true,
         finished: true,
-        score: state.score,
+        score: state.totalScore,
+        maxPossibleScore: state.questionsData.reduce((sum, q) => sum + q.points, 0),
+        answeredQuestions: answeredQuestions,
+        totalAttempts: totalAttempts,
+        averageScore: averageScore,
         message: "Tüm sorular tamamlandı! Yarışma bitiyor."
       };
     }
     
     // Sıradaki soruyu al
-    const nextQuestion = questions[state.currentQuestionIndex];
+    const nextQuestion = state.questionsData[state.currentQuestionIndex];
+    
+    const endTime = Date.now();
+    console.log(`⏱️ [${endTime}] handleNextQuestion COMPLETED (${endTime - startTime}ms)`);
     
     return {
       success: true,
       question: nextQuestion,
       questionIndex: state.currentQuestionIndex,
-      score: state.score,
-      message: `Soru ${state.currentQuestionIndex + 1}/10'a geçiliyor`
+      score: state.totalScore,
+      questionStatus: {
+        isAnswered: nextQuestion.isAnswered,
+        attemptCount: nextQuestion.attemptCount,
+        previousAnswer: nextQuestion.userAnswer
+      },
+      message: `Soru ${state.currentQuestionIndex + 1}/${state.questionsData.length}'a geçiliyor`
     };
     
   } catch (error) {
-    console.error('Error moving to next question:', error);
+    const errorTime = Date.now();
+    console.error(`⏱️ [${errorTime}] handleNextQuestion ERROR (${errorTime - startTime}ms):`, error);
     return {
       success: false,
       message: "Sonraki soruya geçerken hata oluştu"
@@ -833,6 +1023,9 @@ async function handleNextQuestion(state: GameState): Promise<ToolCallResult> {
 }
 
 async function handleUserQuestion({ question }: any): Promise<ToolCallResult> {
+  const startTime = Date.now();
+  console.log(`⏱️ [${startTime}] handleUserQuestion STARTED for: "${question}"`);
+  
   try {
     const qnaPath = path.join(process.cwd(), 'data', 'qna.json');
     const qnaItems: QnAItem[] = await getCachedFile(
@@ -864,6 +1057,9 @@ Daha detaylı bilgi için yarışma sonunda konuşabiliriz. Şimdi yarışmamız
     
     console.log(`💬 Answer provided for user question`);
     
+    const endTime = Date.now();
+    console.log(`⏱️ [${endTime}] handleUserQuestion COMPLETED (${endTime - startTime}ms)`);
+    
     return {
       success: true,
       answer,
@@ -871,7 +1067,8 @@ Daha detaylı bilgi için yarışma sonunda konuşabiliriz. Şimdi yarışmamız
     };
     
   } catch (error) {
-    console.error('Error answering user question:', error);
+    const errorTime = Date.now();
+    console.error(`⏱️ [${errorTime}] handleUserQuestion ERROR (${errorTime - startTime}ms):`, error);
     return {
       success: false,
       answer: "Üzgünüm, şu anda bu soruyu cevaplayamıyorum. Yarışmaya devam edelim!",
@@ -881,17 +1078,21 @@ Daha detaylı bilgi için yarışma sonunda konuşabiliriz. Şimdi yarışmamız
 }
 
 async function handleEndQuiz(state: GameState): Promise<ToolCallResult> {
+  const startTime = Date.now();
+  console.log(`⏱️ [${startTime}] handleEndQuiz STARTED`);
+  
   try {
     // Maksimum skor kontrolü (135 puan limit)
     const maxScore = 135;
-    if (state.score > maxScore) {
-      console.warn(`⚠️ Score exceeds maximum! Capping at ${maxScore}. Current: ${state.score}`);
-      state.score = maxScore;
+    if (state.totalScore > maxScore) {
+      console.warn(`⚠️ Score exceeds maximum! Capping at ${maxScore}. Current: ${state.totalScore}`);
+      state.totalScore = maxScore;
     }
     
-    console.log(`🏁 Ending quiz. Final score: ${state.score}/${maxScore}`);
+    console.log(`🏁 Ending quiz. Final score: ${state.totalScore}/${maxScore}`);
     
     state.status = 'finished';
+    state.endTime = new Date().toISOString();
     const sessionId = state.sessionId;
     
     // Skoru kaydet
@@ -910,7 +1111,7 @@ async function handleEndQuiz(state: GameState): Promise<ToolCallResult> {
       const newScore: ScoreEntry = {
         name: state.participant.name,
         email: state.participant.email,
-        score: state.score,
+        score: state.totalScore,
         totalQuestions: 10,
         date: new Date().toISOString()
       };
@@ -918,7 +1119,7 @@ async function handleEndQuiz(state: GameState): Promise<ToolCallResult> {
       scores.push(newScore);
       await fs.writeFile(scoresPath, JSON.stringify(scores, null, 2));
       
-      console.log(`💾 Score saved for ${state.participant.name}: ${state.score} points`);
+      console.log(`💾 Score saved for ${state.participant.name}: ${state.totalScore} points`);
     }
     
     // Session'ı temizle - DOĞA'nın final konuşmasını bitirmesi için 60 saniye bekle
@@ -929,15 +1130,19 @@ async function handleEndQuiz(state: GameState): Promise<ToolCallResult> {
       }
     }, 60000); // 1 dakika bekle ki DOĞA final konuşmasını bitirsin
     
+    const endTime = Date.now();
+    console.log(`⏱️ [${endTime}] handleEndQuiz COMPLETED (${endTime - startTime}ms total)`);
+    
     return {
       success: true,
       finished: true,
-      score: state.score,
-      message: `Yarışma tamamlandı! Final skorunuz: ${state.score}/${maxScore}`
+      score: state.totalScore,
+      message: `Yarışma tamamlandı! Final skorunuz: ${state.totalScore}/${maxScore}`
     };
     
   } catch (error) {
-    console.error('Error ending quiz:', error);
+    const errorTime = Date.now();
+    console.error(`⏱️ [${errorTime}] handleEndQuiz ERROR (${errorTime - startTime}ms):`, error);
     return {
       success: false,
       message: "Yarışma bitirilirken hata oluştu"

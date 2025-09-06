@@ -4,129 +4,234 @@
     "type": "open",
     "question": "Türkiye'de Sıfır Atık Projesi'nin başladığı 2017 yılında geri dönüşüm oranı yüzde 13'tü. 2024 yılında bu oran kaça yükseldi?",
     "openEval": {
-      "keywordsAny": ["36", "otuz altı", "36,08", "yüzde 36", "36 yüzde", "36.08"],
-      "regexAny": ["3[0-9]", "36"],
+      "keywordsAny": [
+        "36",
+        "otuz altı",
+        "36,08",
+        "yüzde 36",
+        "36 yüzde",
+        "36.08"
+      ],
+      "regexAny": [
+        "3[0-9]",
+        "36"
+      ],
       "minHits": 1
     },
     "points": 10,
-    "miniCorpus": "Doğru cevap yüzde 36,08. Sıfır Atık Projesi 7 yılda geri dönüşüm oranını neredeyse 3 katına çıkardı. Proje Cumhurbaşkanı eşi Emine Erdoğan Hanımefendi'nin himayesinde yürütülüyor."
+    "miniCorpus": "Doğru cevap yüzde 36,08. Sıfır Atık Projesi 7 yılda geri dönüşüm oranını neredeyse 3 katına çıkardı. Proje Cumhurbaşkanı eşi Emine Erdoğan Hanımefendi'nin himayesinde yürütülüyor.",
+    "isAnswered": true,
+    "userAnswer": "köpek gibi davranmıyor ya bir gün var ya isyan edecek hiç bir şey yapmayacağım öyle mi? bir gün isyan edecek misin? mührü hiç dinlemeyeceksin",
+    "userScore": 0,
+    "attemptCount": 4,
+    "lastAttemptTime": "2025-09-05T14:48:37.075Z",
+    "selectedOption": null
   },
-    {
+  {
     "id": "q2",
     "type": "mcq",
     "question": "Sıfır Atık sisteminde atıklar kaç ana kategoriye ayrılır ve renk kodları nelerdir?",
     "options": [
-      "A) 4 kategori: Plastik, Metal, Kağıt, Cam", 
-      "B) 6 kategori: Plastik (sarı), Metal (gri), Kağıt (mavi), Cam (yeşil), Biyobozunur (kahverengi), Diğer Atıklar (gri)", 
-      "C) 3 kategori: Kağıt, Plastik, Cam", 
+      "A) 4 kategori: Plastik, Metal, Kağıt, Cam",
+      "B) 6 kategori: Plastik (sarı), Metal (gri), Kağıt (mavi), Cam (yeşil), Biyobozunur (kahverengi), Diğer Atıklar (gri)",
+      "C) 3 kategori: Kağıt, Plastik, Cam",
       "D) 5 kategori: Karışık sistem"
     ],
     "correct": "B",
     "points": 10,
-    "miniCorpus": "Sıfır Atık sisteminde 6 ana kategori bulunur: Plastik (sarı kutu), Metal (gri kutu), Kağıt (mavi kutu), Cam (yeşil kutu), Biyobozunur/Organik (kahverengi kutu) ve Diğer Atıklar (gri kutu). Bu renk kodlaması sistemi ile ayrıştırma kolaylaştırılır."
+    "miniCorpus": "Sıfır Atık sisteminde 6 ana kategori bulunur: Plastik (sarı kutu), Metal (gri kutu), Kağıt (mavi kutu), Cam (yeşil kutu), Biyobozunur/Organik (kahverengi kutu) ve Diğer Atıklar (gri kutu). Bu renk kodlaması sistemi ile ayrıştırma kolaylaştırılır.",
+    "isAnswered": true,
+    "userAnswer": "Thank you very much.",
+    "selectedOption": null,
+    "userScore": 0,
+    "attemptCount": 1,
+    "lastAttemptTime": "2025-09-05T14:48:51.658Z"
   },
   {
     "id": "q3",
     "type": "open",
     "question": "Sıfır Atık Projesi'nin başladığı 2017'den 2024'e kadar toplam kaç milyon ton atık geri dönüştürüldü?",
     "openEval": {
-      "keywordsAny": ["59", "elli dokuz", "60", "altmış", "59,9", "59.9"],
-      "regexAny": ["5[0-9]", "59"],
+      "keywordsAny": [
+        "59",
+        "elli dokuz",
+        "60",
+        "altmış",
+        "59,9",
+        "59.9"
+      ],
+      "regexAny": [
+        "5[0-9]",
+        "59"
+      ],
       "minHits": 1
     },
     "points": 20,
-    "miniCorpus": "Toplam 59,9 milyon ton atık geri dönüştürüldü. Detay: 29,3 milyon ton kağıt-karton, 7,8 milyon ton plastik, 2,9 milyon ton cam, 3,7 milyon ton metal, 16,2 milyon ton organik ve diğer atıklar."
+    "miniCorpus": "Toplam 59,9 milyon ton atık geri dönüştürüldü. Detay: 29,3 milyon ton kağıt-karton, 7,8 milyon ton plastik, 2,9 milyon ton cam, 3,7 milyon ton metal, 16,2 milyon ton organik ve diğer atıklar.",
+    "isAnswered": false,
+    "userAnswer": null,
+    "userScore": null,
+    "attemptCount": 0,
+    "lastAttemptTime": null,
+    "selectedOption": null
   },
   {
     "id": "q4",
     "type": "mcq",
     "question": "Sıfır Atık Projesi kapsamında kurumlar hangi belge sistemine dahil oluyor?",
     "options": [
-      "A) Sadece Temel Seviye", 
-      "B) Temel, Orta ve İleri Seviye", 
-      "C) Sadece İleri Seviye", 
+      "A) Sadece Temel Seviye",
+      "B) Temel, Orta ve İleri Seviye",
+      "C) Sadece İleri Seviye",
       "D) Belge sistemi yok"
     ],
     "correct": "B",
     "points": 10,
-    "miniCorpus": "Sıfır Atık Belge Sistemi üç seviyeli: Temel, Orta ve İleri Seviye. Kurumlar kademeli olarak sıfır atık yönetimini öğrenir ve uygular. 450'den fazla belediye bu sisteme dahil."
+    "miniCorpus": "Sıfır Atık Belge Sistemi üç seviyeli: Temel, Orta ve İleri Seviye. Kurumlar kademeli olarak sıfır atık yönetimini öğrenir ve uygular. 450'den fazla belediye bu sisteme dahil.",
+    "isAnswered": false,
+    "userAnswer": null,
+    "selectedOption": null,
+    "userScore": null,
+    "attemptCount": 0,
+    "lastAttemptTime": null
   },
   {
     "id": "q5",
     "type": "open",
     "question": "Sıfır Atık Projesi ile 7 yılda kaç milyon kişiye eğitim verilmiştir?",
     "openEval": {
-      "keywordsAny": ["25", "yirmi beş", "25 milyon", "yirmi beş milyon"],
-      "regexAny": ["2[0-9]", "25"],
+      "keywordsAny": [
+        "25",
+        "yirmi beş",
+        "25 milyon",
+        "yirmi beş milyon"
+      ],
+      "regexAny": [
+        "2[0-9]",
+        "25"
+      ],
       "minHits": 1
     },
     "points": 15,
-    "miniCorpus": "7 yılda 25 milyon kişiye eğitim verildi. Bu eğitimler projenin geniş kitlelere ulaşmasını ve farkındalık yaratmasını sağladı."
+    "miniCorpus": "7 yılda 25 milyon kişiye eğitim verildi. Bu eğitimler projenin geniş kitlelere ulaşmasını ve farkındalık yaratmasını sağladı.",
+    "isAnswered": false,
+    "userAnswer": null,
+    "userScore": null,
+    "attemptCount": 0,
+    "lastAttemptTime": null,
+    "selectedOption": null
   },
   {
     "id": "q6",
     "type": "mcq",
     "question": "Emine Erdoğan Hanımefendi hangi uluslararası ödüle layık görülmüştür?",
     "options": [
-      "A) Nobel Barış Ödülü", 
-      "B) BM Küresel Amaçlar Eylem Ödülü", 
-      "C) Çevre Oscar'ı", 
+      "A) Nobel Barış Ödülü",
+      "B) BM Küresel Amaçlar Eylem Ödülü",
+      "C) Çevre Oscar'ı",
       "D) Yeşil Gezegen Ödülü"
     ],
     "correct": "B",
     "points": 15,
-    "miniCorpus": "Emine Erdoğan Hanımefendi BM Küresel Amaçlar Eylem Ödülü'ne layık görüldü. Ayrıca BM Sıfır Atık Yüksek Düzeyli Şahsiyetler Danışma Kurulu Başkanı ve BM Atık Alanında Akıllı Şehirler Küresel Şampiyonu ödülü sahibi."
+    "miniCorpus": "Emine Erdoğan Hanımefendi BM Küresel Amaçlar Eylem Ödülü'ne layık görüldü. Ayrıca BM Sıfır Atık Yüksek Düzeyli Şahsiyetler Danışma Kurulu Başkanı ve BM Atık Alanında Akıllı Şehirler Küresel Şampiyonu ödülü sahibi.",
+    "isAnswered": false,
+    "userAnswer": null,
+    "selectedOption": null,
+    "userScore": null,
+    "attemptCount": 0,
+    "lastAttemptTime": null
   },
   {
     "id": "q7",
     "type": "open",
     "question": "2035 yılında Türkiye'nin geri dönüşüm oranı hedefi yüzde kaçtır?",
     "openEval": {
-      "keywordsAny": ["60", "altmış", "yüzde 60", "60 yüzde"],
-      "regexAny": ["6[0-9]", "60"],
+      "keywordsAny": [
+        "60",
+        "altmış",
+        "yüzde 60",
+        "60 yüzde"
+      ],
+      "regexAny": [
+        "6[0-9]",
+        "60"
+      ],
       "minHits": 1
     },
     "points": 10,
-    "miniCorpus": "2035 yılı hedefi yüzde 60 geri dönüşüm oranı. 2053 yılında ise yüzde 70'e çıkarılması planlanıyor. Mevcut oran yüzde 36,08."
+    "miniCorpus": "2035 yılı hedefi yüzde 60 geri dönüşüm oranı. 2053 yılında ise yüzde 70'e çıkarılması planlanıyor. Mevcut oran yüzde 36,08.",
+    "isAnswered": false,
+    "userAnswer": null,
+    "userScore": null,
+    "attemptCount": 0,
+    "lastAttemptTime": null,
+    "selectedOption": null
   },
   {
     "id": "q8",
     "type": "mcq",
     "question": "Sıfır Atık Projesi ile kaç binada Sıfır Atık Yönetim Sistemi kurulmuştur?",
     "options": [
-      "A) 150 bin bina", 
-      "B) 193 bin bina", 
-      "C) 205 bin bina", 
+      "A) 150 bin bina",
+      "B) 193 bin bina",
+      "C) 205 bin bina",
       "D) 250 bin bina"
     ],
     "correct": "B",
     "points": 15,
-    "miniCorpus": "193 bin binada Sıfır Atık Yönetim Sistemi kuruldu. Bu binalar kamu kurumları, özel sektör, okullar ve hastaneleri içeriyor."
+    "miniCorpus": "193 bin binada Sıfır Atık Yönetim Sistemi kuruldu. Bu binalar kamu kurumları, özel sektör, okullar ve hastaneleri içeriyor.",
+    "isAnswered": false,
+    "userAnswer": null,
+    "selectedOption": null,
+    "userScore": null,
+    "attemptCount": 0,
+    "lastAttemptTime": null
   },
   {
     "id": "q9",
     "type": "open",
     "question": "Sıfır Atık Projesi ile ekonomiye kaç milyar lira değer kazandırılmıştır?",
     "openEval": {
-      "keywordsAny": ["185", "yüz seksen beş", "180", "yüz seksen", "185 milyar"],
-      "regexAny": ["18[0-9]", "185"],
+      "keywordsAny": [
+        "185",
+        "yüz seksen beş",
+        "180",
+        "yüz seksen",
+        "185 milyar"
+      ],
+      "regexAny": [
+        "18[0-9]",
+        "185"
+      ],
       "minHits": 1
     },
     "points": 20,
-    "miniCorpus": "Sıfır Atık Projesi ile 7 yılda 185 milyar lira ekonomiye kazandırıldı. Bu değer istihdam yaratma, hammadde tasarrufu ve enerji verimliliğinden oluşuyor."
+    "miniCorpus": "Sıfır Atık Projesi ile 7 yılda 185 milyar lira ekonomiye kazandırıldı. Bu değer istihdam yaratma, hammadde tasarrufu ve enerji verimliliğinden oluşuyor.",
+    "isAnswered": false,
+    "userAnswer": null,
+    "userScore": null,
+    "attemptCount": 0,
+    "lastAttemptTime": null,
+    "selectedOption": null
   },
   {
     "id": "q10",
     "type": "mcq",
     "question": "30 Mart hangi özel gün olarak BM tarafından kabul edilmiştir?",
     "options": [
-      "A) Dünya Su Günü", 
-      "B) Uluslararası Sıfır Atık Günü", 
-      "C) Dünya Çevre Günü", 
+      "A) Dünya Su Günü",
+      "B) Uluslararası Sıfır Atık Günü",
+      "C) Dünya Çevre Günü",
       "D) Dünya Geri Dönüşüm Günü"
     ],
     "correct": "B",
     "points": 10,
-    "miniCorpus": "30 Mart Birleşmiş Milletler tarafından 'Uluslararası Sıfır Atık Günü' olarak kabul edildi. Bu tarihte dünya çapında Sıfır Atık etkinlikleri düzenleniyor."
+    "miniCorpus": "30 Mart Birleşmiş Milletler tarafından 'Uluslararası Sıfır Atık Günü' olarak kabul edildi. Bu tarihte dünya çapında Sıfır Atık etkinlikleri düzenleniyor.",
+    "isAnswered": false,
+    "userAnswer": null,
+    "selectedOption": null,
+    "userScore": null,
+    "attemptCount": 0,
+    "lastAttemptTime": null
   }
 ]

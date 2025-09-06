@@ -586,7 +586,7 @@ VAD eşiği: ${turnDetectionConfig.threshold}`,
           // Start the quiz after a short delay
           setTimeout(() => {
             handleToolCall('start_quiz', { userInfo });
-          }, 1000);
+          }, 100);
         },
         onDataChannelClose: () => {
           setIsConnected(false);
