@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import UserForm from '@/components/UserForm';
+import ModernUserForm from '@/components/ModernUserForm';
 import QuizInterface from '@/components/QuizInterface';
+import CleanModernQuizInterface from '@/components/CleanModernQuizInterface';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { UserInfo } from '@/types/quiz';
 
 export default function HomePage() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
+  const [useModernUI, setUseModernUI] = useState(true); // Modern UI'yi varsayılan yap
   
   const handleFormSubmit = (data: UserInfo) => {
     console.log('Form submitted:', data);
@@ -26,13 +28,19 @@ export default function HomePage() {
     <ErrorBoundary
       onError={(error, errorInfo) => {
         console.error('🚨 Application Error:', error, errorInfo);
+        console.error('🚨 Falling back to old QuizInterface');
         // Here you could send error to monitoring service
       }}
     >
       <main className="min-h-screen">
         {!gameStarted ? (
-          <UserForm onSubmit={handleFormSubmit} />
-        ) : (
+          <ModernUserForm onSubmit={handleFormSubmit} />
+          ) : useModernUI ? (
+            <CleanModernQuizInterface
+              userInfo={userInfo!}
+              onBack={handleBackToForm}
+            />
+          ) : (
           <QuizInterface 
             userInfo={userInfo!} 
             onBack={handleBackToForm}

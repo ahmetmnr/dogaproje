@@ -12,6 +12,7 @@ const openai = new OpenAI({
 // 📚 FEW-SHOT EXAMPLES FOR BETTER PROMPTING
 const MCQ_FEW_SHOT_EXAMPLES = `
 🔤 ÇOKTAN SEÇMELİ SORU ÖRNEKLERİ:
+<<<<<<< HEAD
 
 ÖRNEK 1:
 Soru: Sıfır Atık sisteminde kaç ana kategori var?
@@ -102,19 +103,24 @@ Aynı tip sorular için aynı puanlama:
 // 🌿 SIFIR ATIK PROJESİ GENEL BİLGİ BANKASI
 const SIFIR_ATIK_BILGI_BANKASI = `
 🌿 SIFIR ATIK PROJESİ GENEL BİLGİ BANKASI:
+=======
+>>>>>>> 193d71a (ön yüz değişti)
 
-📅 TARİHÇE:
-- 2017 yılında başlatıldı
-- Emine Erdoğan Hanımefendi himayesinde
-- Türkiye Cumhuriyeti Cumhurbaşkanlığı öncülüğünde
+ÖRNEK 1:
+Soru: Sıfır Atık sisteminde kaç ana kategori var?
+A) 3 kategori B) 4 kategori C) 6 kategori D) 8 kategori
+Doğru: C
+Kullanıcı: "galiba altı tane var"
+Değerlendirme: 100 puan (belirsizlik + doğru bilgi = tam puan)
 
-📊 BAŞARI RAKAMLARI:
-- Geri dönüşüm oranı: 2017'de %13 → 2024'te %36,08
-- Toplam geri dönüştürülen atık: 59,9 milyon ton
-- Eğitim alan kişi sayısı: 25 milyon
-- Sistem kurulan bina sayısı: 205 bin
-- Dahil olan belediye sayısı: 450+
+ÖRNEK 2: 
+Soru: Hangi kutu hangi atık için?
+A) Mavi=plastik B) Sarı=plastik C) Yeşil=plastik D) Kırmızı=plastik
+Doğru: B
+Kullanıcı: "B şıkkı ama aslında sarı kutu plastik için"
+Değerlendirme: 100 puan (düzeltme + doğru şık)
 
+<<<<<<< HEAD
 🎯 HEDEFLER:
 - 2035 yılı hedefi: %60 geri dönüşüm oranı
 - 2053 yılı hedefi: %70 geri dönüşüm oranı
@@ -157,9 +163,141 @@ const SIFIR_ATIK_BILGI_BANKASI = `
 - Sıfır Atık Vakfı (2023 yılında kuruldu)
 - Sürdürülebilirlik ve kalıcılık amacıyla
 - Gelecek nesillere aktarım hedefi
+=======
+ÖRNEK 3:
+Soru: Proje ne zaman başladı?
+A) 2015 B) 2017 C) 2019 D) 2020
+Doğru: B
+Kullanıcı: "sanırım 2018 civarı"
+Değerlendirme: 80 puan (yaklaşık ama tam doğru değil)
+>>>>>>> 193d71a (ön yüz değişti)
 `;
 
-// 🧠 İKİ KATMANLI HİBRİT DEĞERLENDİRME SİSTEMİ
+const OPEN_ENDED_FEW_SHOT_EXAMPLES = `
+📝 AÇIK UÇLU SORU ÖRNEKLERİ:
+
+ÖRNEK 1:
+Soru: 2024'te geri dönüşüm oranı yüzde kaç?
+Doğru: 36,08
+Kullanıcı: "otuz altı falan"
+Değerlendirme: 90 puan (yaklaşık ifade + doğru rakam)
+
+ÖRNEK 2:
+Soru: Toplam kaç milyon ton atık geri dönüştürüldü?
+Doğru: 59,9 milyon
+Kullanıcı: "altmış milyon civarı"
+Değerlendirme: 95 puan (çok yakın tahmin)
+
+ÖRNEK 3:
+Soru: Kaç kişiye eğitim verildi?
+Doğru: 25 milyon
+Kullanıcı: "yirmi beş milyon kişi"
+Değerlendirme: 100 puan (tam doğru)
+`;
+
+const TURKISH_LANGUAGE_FEW_SHOT_EXAMPLES = `
+TURKCE DIL OZELLIKLERI:\n
+Belirsizlik ifadeleri = POZITIF:\n
+- "galiba", "sanirim", "herhalde" + dogru cevap = TAM PUAN\n
+- "civari", "falan", "kadar" + yakin sayi = YUKSEK PUAN\n
+\n
+Yakinlik ifadeleri:\n
+- "otuz alti falan" (36 icin) = 90 puan\n
+- "altmis civari" (59,9 icin) = 95 puan\n
+- "iki bin on yedi gibi" (2017 icin) = 100 puan\n
+`;
+
+const EDGE_CASE_FEW_SHOT_EXAMPLES = `
+OZEL DURUMLAR:\n
+\n
+Celiskili cevaplar:\n
+Kullanici: "A dedim ama B dogru"\n
+-> Duzeltmeyi dikkate al, B'ye gore puanla\n
+\n
+Kismi bilgi:\n
+Kullanici: "alti tane kategori var ama renklerini bilmiyorum"\n
+-> Bildikleri kisim icin puan ver\n
+\n
+Cok yakin rakamlar:\n
+35 vs 36 -> 90 puan\n
+58 vs 59,9 -> 95 puan\n
+2016 vs 2017 -> 80 puan\n
+`;
+
+const CONSISTENCY_CALIBRATION_EXAMPLES = `
+TUTARLILIK KALIBRASYONU:\n
+\n
+Ayni tip sorular icin ayni puanlama:\n
+- "otuz alti" = 100 puan\n
+- "36" = 100 puan\n
+- "otuz alti falan" = 90 puan\n
+- "otuz bes" = 90 puan\n
+- "kirk" = 60 puan\n
+- "yirmi" = 0 puan\n
+`;
+
+// SIFIR ATIK PROJESI GENEL BILGI BANKASI
+const SIFIR_ATIK_BILGI_BANKASI = `
+SIFIR ATIK PROJESI GENEL BILGI BANKASI:\n
+\n
+TARIHCE:\n
+- 2017 yilinda baslatildi\n
+- Emine Erdogan Hanimefendi himayesinde\n
+- Turkiye Cumhuriyeti Cumhurbaskanligi onculugunde\n
+\n
+BASARI RAKAMLARI:\n
+- Geri donusum orani: 2017'de %13 -> 2024'te %36,08\n
+- Toplam geri donusturulen atik: 59,9 milyon ton\n
+- Egitim alan kisi sayisi: 25 milyon\n
+- Sistem kurulan bina sayisi: 205 bin\n
+- Dahil olan belediye sayisi: 450+\n
+\n
+HEDEFLER:\n
+- 2035 yili hedefi: %60 geri donusum orani\n
+- 2053 yili hedefi: %70 geri donusum orani\n
+\n
+ATIK KATEGORILERI:\n
+- Kagit-Karton (Mavi kutu)\n
+- Plastik-Metal (Sari kutu)\n
+- Cam (Yesil kutu)\n
+- Organik Atik (Kahverengi kutu)\n
+\n
+DETAYLI GERI DONUSUM RAKAMLARI:\n
+- Kagit-karton: 29,3 milyon ton\n
+- Plastik: 7,8 milyon ton\n
+- Cam: 2,9 milyon ton\n
+- Metal: Milyonlarca ton\n
+\n
+ULUSLARARASI BASARILAR:\n
+- BM Kuresel Amaclar Eylem Odulu\n
+- BM Sifir Atik Yuksek Duzeylli Sahsiyetler Danisma Kurulu Baskanligi\n
+- Dunya capinda ornek gosterilen proje\n
+\n
+KURUMSAL YAPILANMA:\n
+- Sifir Atik Belge Sistemi: Temel, Orta, Ileri Seviye\n
+- Kamu kurumlari, ozel sektor, egitim kurumlari dahil\n
+- Sistematik egitim ve sertifikasyon programlari\n
+\n
+CEVRESEL ETKI:\n
+- Milyonlarca agacin kesilmesi onlendi\n
+- Sera gazi emisyonlari azaltildi\n
+- Dogal kaynaklar korundu\n
+- Ekonomiye milyarlarca lira katki
+
+\n
+PRATIK UYGULAMALAR:\n
+- Evde atik ayristirma\n
+- Renk kodlu kutu sistemi\n
+- Bilincli tuketim aliskanliklari\n
+- Geri donusum bilinci artirma\n
+\n
+KURUMSALLASMA:\n
+- Sifir Atik Vakfi (2023 yilinda kuruldu)\n
+- Surdurulebilirlik ve kalicilik amaciyla\n
+- Gelecek nesillere aktarim hedefi\n
+`;
+
+// IKI KATMANLI HIBRIT DEGERLENDIRME SISTEMI
 async function evaluateAnswerWithFullContext(
   question: Question, 
   userAnswer: string,
@@ -184,43 +322,47 @@ async function evaluateAnswerWithFullContext(
     specificExamples = OPEN_ENDED_FEW_SHOT_EXAMPLES;
   }
   
-  const systemPrompt = `Sen Sıfır Atık Projesi uzmanı bir değerlendirme asistanısın.
+  const systemPrompt = `Sifir Atik sorusu degerlendiriyorsun. Sadece JSON dondur.
 
-${SIFIR_ATIK_BILGI_BANKASI}
+KURALLAR:\n
+- MCQ: Dogru sik = 100 puan, yanlis = 0 puan\n
+- Acik uclu: Anahtar kelime varsa puan ver\n
+- Belirsizlik ifadeleri (galiba, sanirim) + dogru cevap = tam puan
 
-🎯 DEĞERLENDİRME FELSEFESİ: ADIL, TUTARLI VE ESNEK
+\n
+DEGERLENDIRME FELSEFESI: ADIL, TUTARLI VE ESNEK\n
+\n
+${specificExamples}\n
+\n
+${TURKISH_LANGUAGE_FEW_SHOT_EXAMPLES}\n
+\n
+${EDGE_CASE_FEW_SHOT_EXAMPLES}\n
+\n
+${CONSISTENCY_CALIBRATION_EXAMPLES}\n
+\n
+GELISMIS DEGERLENDIRME ADIMLARI:\n
+1. Kullanici cevabini normalize et (buyuk/kucuk harf, noktalama)\n
+2. Eger MCQ ise selectedOption ile transcript'i karsilastir\n
+3. Turkce dil ozelliklerini tani (belirsizlik, yakinlik ifadeleri)\n
+4. Soru tipini belirle ve uygun few-shot ornekleri kullan\n
+5. Tutarli puanlama uygula\n
+6. Guven skorunu hesapla
+7. Detayli reasoning sagla
 
-${specificExamples}
+COKTAN SECMELI OZEL KURALLAR:\n
+- Eger selectedOption var ise, once bunu degerlendir\n
+- Transcript ile selectedOption celisiyorsa, transcript'i oncelikle\n
+- "A sikki ama aslinda B dogru" gibi duzeltmeleri destekle\n
+- Belirsizlik ifadeleri + dogru sik = tam puan
 
-${TURKISH_LANGUAGE_FEW_SHOT_EXAMPLES}
-
-${EDGE_CASE_FEW_SHOT_EXAMPLES}
-
-${CONSISTENCY_CALIBRATION_EXAMPLES}
-
-📋 GELİŞMİŞ DEĞERLENDİRME ADIMLARI:
-1. Kullanıcı cevabını normalize et (büyük/küçük harf, noktalama)
-2. Eğer MCQ ise selectedOption ile transcript'i karşılaştır
-3. Türkçe dil özelliklerini tanı (belirsizlik, yakınlık ifadeleri)
-4. Soru tipini belirle ve uygun few-shot örnekleri kullan
-5. Tutarlı puanlama uygula
-6. Güven skorunu hesapla
-7. Detaylı reasoning sağla
-
-🔤 ÇOKTAN SEÇMELİ ÖZEL KURALLAR:
-- Eğer selectedOption var ise, önce bunu değerlendir
-- Transcript ile selectedOption çelişiyorsa, transcript'i öncelikle
-- "A şıkkı ama aslında B doğru" gibi düzeltmeleri destekle
-- Belirsizlik ifadeleri + doğru şık = tam puan
-
-ÇIKTI FORMATI - JSON formatında döndür:
-{
-  "isCorrect": true/false,
-  "points": 0-100,
-  "explanation": "Detaylı açıklama",
-  "contextualInfo": "Sıfır Atık bağlamında ek bilgi",
-  "confidence": 0.0-1.0,
-  "reasoning": "Puanlama mantığını açıkla"
+JSON CIKTI:\n
+{\n
+  "isCorrect": true/false,\n
+  "points": 0-100,\n
+  "explanation": "Kisa aciklama",\n
+  "contextualInfo": "",\n
+  "confidence": 0.8,\n
+  "reasoning": "Neden bu puan"\n
 }`;
 
   // Soru tipine göre prompt hazırla
@@ -254,15 +396,29 @@ Eğer hem sesli cevap hem seçilen şık varsa, ikisini de dikkate al.
   try {
     const apiCallStart = Date.now();
     console.log(`⏱️ [${apiCallStart}] OpenAI API call STARTED`);
+    console.log(`🔑 API Key exists: ${!!process.env.OPENAI_API_KEY}`);
+    console.log(`📝 Prompt length: ${systemPrompt.length + userPrompt.length} chars`);
+    
+    // GERÇEK SORUN TESPİTİ: API key var mı?
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OpenAI API key missing - bu gerçek sorun!');
+    }
     
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4-turbo',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
       response_format: { type: "json_object" },
+<<<<<<< HEAD
       max_tokens: 400
+=======
+      max_tokens: 200, // Daha kısa yanıt
+      temperature: 0.1 // Daha tutarlı sonuçlar
+    }, {
+      timeout: 5000 // 5 saniye timeout
+>>>>>>> 193d71a (ön yüz değişti)
     });
     
     const apiCallEnd = Date.now();
@@ -274,6 +430,7 @@ Eğer hem sesli cevap hem seçilen şık varsa, ikisini de dikkate al.
     const points = Math.max(0, Math.min(100, result.points || 0));
     const isCorrect = points >= 60; // 60+ puan = doğru
     
+<<<<<<< HEAD
     console.log(`🤖 Gelişmiş Değerlendirme:`);
     console.log(`📝 Question ${currentQuestionIndex + 1}: "${question.question}"`);
     console.log(`👤 User Answer: "${userAnswer}"`);
@@ -281,9 +438,18 @@ Eğer hem sesli cevap hem seçilen şık varsa, ikisini de dikkate al.
     console.log(`🎯 Result: ${isCorrect ? 'CORRECT' : 'INCORRECT'} (${points}/100 puan)`);
     console.log(`💡 Explanation: ${result.explanation}`);
     console.log(`🧠 Reasoning: ${result.reasoning}`);
+=======
+    console.log(`Gelismis Degerlendirme:`);
+    console.log(`Question ${currentQuestionIndex + 1}: "${question.question}"`);
+    console.log(`User Answer: "${userAnswer}"`);
+    console.log(`Selected Option: "${selectedOption || 'None'}"`);
+    console.log(`Result: ${isCorrect ? 'CORRECT' : 'INCORRECT'} (${points}/100 puan)`);
+    console.log(`Explanation: ${result.explanation}`);
+    console.log(`Reasoning: ${result.reasoning}`);
+>>>>>>> 193d71a (ön yüz değişti)
     
     const endTime = Date.now();
-    console.log(`⏱️ [${endTime}] evaluateAnswerWithFullContext COMPLETED (${endTime - startTime}ms total)`);
+    console.log(`[${endTime}] evaluateAnswerWithFullContext COMPLETED (${endTime - startTime}ms total)`);
     
     return {
       isCorrect: isCorrect,
@@ -298,193 +464,397 @@ Eğer hem sesli cevap hem seçilen şık varsa, ikisini de dikkate al.
     const errorTime = Date.now();
     console.error(`❌ [${errorTime}] Full context evaluation failed (${errorTime - startTime}ms):`, error);
     
+<<<<<<< HEAD
     // Değerlendirme başarısız oldu - kullanıcıdan tekrar cevap istenecek
+=======
+    // Detaylı hata logu
+    if (error instanceof Error) {
+      console.error(`Error name: ${error.name}`);
+      console.error(`Error message: ${error.message}`);
+      console.error(`Error stack: ${error.stack}`);
+    }
+    
+    // API key kontrolü
+    if (error instanceof Error && error.message.includes('401')) {
+      console.error(`🔑 OpenAI API Key hatası!`);
+    }
+    
+    // Timeout kontrolü
+    if (error instanceof Error && (error.message.includes('timeout') || error.message.includes('ECONNRESET'))) {
+      console.error(`⏰ Network/Timeout hatası!`);
+    }
+    
+>>>>>>> 193d71a (ön yüz değişti)
     throw new Error(`LLM değerlendirmesi başarısız oldu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`);
   }
 }
 
+<<<<<<< HEAD
+=======
 
-// Hybrid akıllı cevap filtreleme fonksiyonu
+// ⚡ GELİŞMİŞ HIZLI DEĞERLENDİRME FONKSİYONU
+function quickEvaluateAnswer(question: Question, userAnswer: string, selectedOption: string | null): {
+  isCorrect: boolean;
+  points: number;
+  explanation: string;
+  confidence: number;
+} {
+  const normalizedAnswer = userAnswer.toLowerCase().trim();
+  
+  // 1. MCQ için gelişmiş kontrol
+  if (question.type === 'mcq') {
+    const correctOption = question.correct?.toLowerCase();
+    
+    // Seçenek harfi kontrolü
+    if (selectedOption) {
+      const userOption = selectedOption.toLowerCase();
+      if (userOption === correctOption) {
+        return {
+          isCorrect: true,
+          points: 100,
+          explanation: "Doğru seçenek seçildi!",
+          confidence: 0.95
+        };
+      }
+    }
+    
+    // Metin içinde seçenek arama
+    const optionPatterns = [
+      new RegExp(`\\b${correctOption}\\b`, 'i'),
+      new RegExp(`${correctOption}\\s*(şık|seçenek|şıkkı)`, 'i'),
+      new RegExp(`(şık|seçenek)\\s*${correctOption}`, 'i')
+    ];
+    
+    for (const pattern of optionPatterns) {
+      if (pattern.test(normalizedAnswer)) {
+        return {
+          isCorrect: true,
+          points: 100,
+          explanation: "Doğru seçenek metinde bulundu!",
+          confidence: 0.9
+        };
+      }
+    }
+  }
+  
+  // 2. Açık uçlu için gelişmiş keyword matching
+  if (question.openEval?.keywordsAny) {
+    const keywords = question.openEval.keywordsAny;
+    let matchCount = 0;
+    let matchedKeywords: string[] = [];
+    
+    for (const keyword of keywords) {
+      if (normalizedAnswer.includes(keyword.toLowerCase())) {
+        matchCount++;
+        matchedKeywords.push(keyword);
+      }
+    }
+    
+    if (matchCount > 0) {
+      const points = Math.min(100, (matchCount / keywords.length) * 100 + 20); // Bonus puan
+      return {
+        isCorrect: points >= 60,
+        points: Math.round(points),
+        explanation: `Bulunan kelimeler: ${matchedKeywords.join(', ')}`,
+        confidence: 0.85
+      };
+    }
+  }
+  
+  // 3. Sayısal cevaplar için gelişmiş analiz
+  const numbers = normalizedAnswer.match(/\d+/g);
+  if (numbers && question.correct) {
+    const userNum = parseInt(numbers[0]);
+    const correctNum = parseInt(question.correct);
+    
+    const difference = Math.abs(userNum - correctNum);
+    
+    if (difference <= 5) {
+      let accuracy = 100;
+      if (difference === 0) accuracy = 100;
+      else if (difference <= 1) accuracy = 95;
+      else if (difference <= 2) accuracy = 85;
+      else if (difference <= 3) accuracy = 75;
+      else if (difference <= 5) accuracy = 65;
+      
+      return {
+        isCorrect: accuracy >= 60,
+        points: accuracy,
+        explanation: `Sayısal yakınlık: ${userNum} (doğru: ${correctNum})`,
+        confidence: 0.9
+      };
+    }
+  }
+  
+  // 4. Genel metin analizi (son şans)
+  const commonWords = ['evet', 'hayır', 'doğru', 'yanlış', 'var', 'yok'];
+  const hasCommonWords = commonWords.some(word => normalizedAnswer.includes(word));
+  
+  if (hasCommonWords && normalizedAnswer.length > 3) {
+    return {
+      isCorrect: false,
+      points: 25, // Az da olsa puan ver
+      explanation: "Genel cevap tespit edildi",
+      confidence: 0.4
+    };
+  }
+  
+  // 5. Hiçbir şey bulunamadı
+  return {
+    isCorrect: false,
+    points: normalizedAnswer.length > 5 ? 10 : 0, // Uzun cevap için 10 puan
+    explanation: normalizedAnswer.length > 5 ? "Cevap girişimi tespit edildi" : "Cevap bulunamadı",
+    confidence: 0.2
+  };
+}
+>>>>>>> 193d71a (ön yüz değişti)
+
+// 🧠 GELİŞMİŞ INTENT ANALİZİ FONKSİYONU
+function analyzeUserIntent(text: string): {
+  intent: 'question' | 'answer' | 'meta_talk' | 'chat' | 'foreign' | 'profanity';
+  confidence: number;
+  reason: string;
+} {
+  const lowerText = text.toLowerCase().trim();
+  
+  // 1. Yabancı dil tespiti - EN YÜKSEK ÖNCELİK
+  const nonTurkishChars = /[^\sa-züğıöşçİĞÜÖŞÇ0-9.,!?()-]/i;
+  if (nonTurkishChars.test(text)) {
+    return {
+      intent: 'foreign',
+      confidence: 0.95,
+      reason: 'Türkçe olmayan karakterler tespit edildi'
+    };
+  }
+  
+  // İngilizce kelime tespiti
+  const englishWords = ['what', 'do', 'you', 'saw', 'the', 'and', 'or', 'but', 'that', 'this', 'our', 'your', 'see', 'next', 'time', 'where', 'when', 'why', 'how', 'who', 'which', 'can', 'will', 'would', 'should', 'have', 'has', 'had', 'get', 'got', 'make', 'made', 'take', 'took', 'go', 'went', 'come', 'came', 'say', 'said', 'tell', 'told', 'know', 'knew', 'think'];
+  
+  const words = lowerText.split(/\s+/).filter(w => w.length > 1);
+  const englishWordCount = words.filter(word => englishWords.includes(word)).length;
+  
+  if (words.length > 0 && (englishWordCount / words.length) > 0.3) {
+    return {
+      intent: 'foreign',
+      confidence: 0.9,
+      reason: `İngilizce kelimeler tespit edildi: ${englishWordCount}/${words.length}`
+    };
+  }
+  
+  // 2. Küfür ve hakaret tespiti
+  const profanityPatterns = [
+    /\b(gerizekalı|aptal|salak|mal|ahmak|budala|dangalak)\b/i,
+    /\b(pislik|rezil|berbat|iğrenç|tiksinç)\b/i,
+    /\b(siktir|amk|aq|mk|orospu|piç|göt)\b/i
+  ];
+  
+  for (const pattern of profanityPatterns) {
+    if (pattern.test(text)) {
+      return {
+        intent: 'profanity',
+        confidence: 0.95,
+        reason: `Küfür/hakaret tespit edildi: ${pattern.source}`
+      };
+    }
+  }
+  
+  // 3. Soru tespiti - YÜKSEK ÖNCELİK
+  const questionPatterns = [
+    /\b(nedir|nasıl|ne zaman|kim|nerede|kaç|hangi|niye|niçin|neden)\b/i,
+    /\b(ne gibi|nasıl yapılır|kim yürütüyor|hangi başarılar|kaç kategori|ne anlama)\b/i,
+    /\b(anlat|açıkla|bilgi ver|öğret|söyle|anlatır mısın|söyler misin)\b/i,
+    /\b(merak ediyorum|bilmek istiyorum|öğrenmek istiyorum)\b/i,
+    /\b(hangi soruya|nereye kaydediyorsun|puan verdim)\b/i,
+    /\?$/
+  ];
+  
+  for (const pattern of questionPatterns) {
+    if (pattern.test(text)) {
+      return {
+        intent: 'question',
+        confidence: 0.9,
+        reason: `Soru kalıbı tespit edildi: ${pattern.source}`
+      };
+    }
+  }
+  
+  // 4. Meta konuşma tespiti - YÜKSEK ÖNCELİK
+  const metaTalkPatterns = [
+    /\b(sonraki soruya geçelim|geç diğer soruya|yürü git geç)\b/i,
+    /\b(puan vermeyeceksin|puan vermiyom|ne olacak puan)\b/i,
+    /\b(soruya cevap vermedim|cevap vermemiştim|neden saydık)\b/i,
+    /\b(sistem fark etmiyor|fark edemiyor mu|saymaması gerekiyor)\b/i,
+    /\b(bir sonraki soru|önceki soru|bu soru|şu soru)\b/i,
+    /\b(yarışma|başla|bitir|devam|geç|atla|geçelim)\b/i,
+    /\b(maksimum deneme|deneme sayısı|zaten cevap)\b/i
+  ];
+  
+  for (const pattern of metaTalkPatterns) {
+    if (pattern.test(text)) {
+      return {
+        intent: 'meta_talk',
+        confidence: 0.9,
+        reason: `Meta konuşma tespit edildi: ${pattern.source}`
+      };
+    }
+  }
+  
+  // 5. Sohbet/yorum tespiti
+  const chatPatterns = [
+    /\b(teşekkürler|teşekkür|sağol|güzel|harika|mükemmel|süper|çok iyi)\b/i,
+    /\b(tamam|anladım|peki|evet|hayır|olur|olmaz)\b/i,
+    /\b(beğendim|sevdim|hoşuma gitti|güzel proje)\b/i
+  ];
+  
+  for (const pattern of chatPatterns) {
+    if (pattern.test(text)) {
+      return {
+        intent: 'chat',
+        confidence: 0.8,
+        reason: `Sohbet kalıbı tespit edildi: ${pattern.source}`
+      };
+    }
+  }
+  
+  // 6. Cevap tespiti - SPESIFIK KONTROL
+  const answerPatterns = [
+    /\b\d+\s*(milyon|bin|yüzde|%)\b/i, // Sayı + birim
+    /\b(bir|iki|üç|dört|beş|altı|yedi|sekiz|dokuz|on)\s*(milyon|bin|yüzde|kategori)\b/i, // Sözel sayı + birim
+    /\b[abcd]\s*(şık|seçenek)\b/i, // Şık harfleri + açıklama
+    /\b(temel|orta|ileri)\s*(seviye)\b/i, // Seviye cevapları
+    /^\s*[abcd]\s*$/i, // Sadece harf
+    /^\s*\d+\s*$/i, // Sadece sayı
+    /^\s*(yüzde|%)\s*\d+\s*$/i // Yüzde ifadeleri
+  ];
+  
+  for (const pattern of answerPatterns) {
+    if (pattern.test(text)) {
+      return {
+        intent: 'answer',
+        confidence: 0.8,
+        reason: `Cevap kalıbı tespit edildi: ${pattern.source}`
+      };
+    }
+  }
+  
+  // 7. Belirsiz durum - UZUNLUK BAZLI
+  if (text.length < 5) {
+    return {
+      intent: 'chat',
+      confidence: 0.6,
+      reason: 'Çok kısa metin, sohbet olarak değerlendirildi'
+    };
+  }
+  
+  if (text.length > 50) {
+    return {
+      intent: 'meta_talk',
+      confidence: 0.7,
+      reason: 'Uzun metin, meta konuşma olarak değerlendirildi'
+    };
+  }
+  
+  // Varsayılan
+  return {
+    intent: 'chat',
+    confidence: 0.5,
+    reason: 'Belirsiz, sohbet olarak değerlendirildi'
+  };
+}
+
+// 🧪 INTENT ANALİZİ TEST FONKSİYONU
+function testIntentAnalysis() {
+  console.log('🧪 Testing Intent Analysis System...\n');
+  
+  // Test cases - Reddedilmesi gerekenler
+  const rejectCases = [
+    { text: "What do you saw?", expected: "foreign", description: "English text" },
+    { text: "gerizekalı", expected: "profanity", description: "Profanity" },
+    { text: "tamam sonraki soruya geçelim", expected: "meta_talk", description: "Meta talk" },
+    { text: "Hangi soruya puan verdim?", expected: "question", description: "Question" },
+    { text: "puan vermeyeceksin ki", expected: "meta_talk", description: "Complaint" },
+    { text: "bilsem ne olacak", expected: "meta_talk", description: "Complaint" },
+    { text: "teşekkürler", expected: "chat", description: "Chat" },
+    { text: "güzel proje", expected: "chat", description: "Chat" }
+  ];
+  
+  // Test cases - Kabul edilmesi gerekenler
+  const acceptCases = [
+    { text: "36", expected: "answer", description: "Number answer" },
+    { text: "B şıkkı", expected: "answer", description: "Option answer" },
+    { text: "193 bin bina", expected: "answer", description: "Number with unit" },
+    { text: "yüzde 60", expected: "answer", description: "Percentage" },
+    { text: "temel orta ileri", expected: "answer", description: "Level answer" }
+  ];
+  
+  console.log('REJECTION TESTS:');
+  rejectCases.forEach((testCase, index) => {
+    const result = analyzeUserIntent(testCase.text);
+    const passed = result.intent === testCase.expected && result.confidence > 0.7;
+    console.log(`${index + 1}. "${testCase.text}"`);
+    console.log(`   Expected: ${testCase.expected}, Got: ${result.intent} (${result.confidence})`);
+    console.log(`   Reason: ${result.reason}`);
+    console.log(`   ${passed ? 'PASS' : 'FAIL'}\n`);
+  });
+  
+  console.log('ACCEPTANCE TESTS:');
+  acceptCases.forEach((testCase, index) => {
+    const result = analyzeUserIntent(testCase.text);
+    const passed = result.intent === testCase.expected && result.confidence > 0.6;
+    console.log(`${index + 1}. "${testCase.text}"`);
+    console.log(`   Expected: ${testCase.expected}, Got: ${result.intent} (${result.confidence})`);
+    console.log(`   Reason: ${result.reason}`);
+    console.log(`   ${passed ? 'PASS' : 'FAIL'}\n`);
+  });
+  
+  console.log('🧪 Intent Analysis Test Complete!\n');
+}
+
+// Basit ve etkili cevap filtreleme fonksiyonu
 function isValidQuestionAnswer(transcript: string, question: Question): { valid: boolean; message?: string } {
   const lowerTranscript = transcript.toLowerCase().trim();
   
-  // 1. Temel kontroller (hızlı)
+  // 1. Çok kısa cevap kontrolü
   if (lowerTranscript.length < 2) {
     return { valid: false, message: "Cevabınız çok kısa, lütfen tekrar söyleyin" };
   }
   
-  // 2. Obvious noise detection (hızlı)
-  const obviousNoise = /^(um|uh|hmm|er|ah|ıı|eee|mmm|hı|ha)+$/i.test(lowerTranscript);
-  if (obviousNoise) {
-    return { valid: false, message: "Lütfen cevabınızı net bir şekilde söyleyin" };
-  }
-  
-  // 3. Yabancı dil tespiti (hızlı)
-  const foreignLanguagePatterns = [
-    /[가-힣]/, // Korece
-    /[\u4e00-\u9fff]/, // Çince
-    /[а-я]/i, // Rusça
-    /[α-ω]/i, // Yunanca
-    /[א-ת]/, // İbranice
-    /[ا-ي]/, // Arapça
-  ];
-  
-  for (const pattern of foreignLanguagePatterns) {
-    if (pattern.test(transcript)) {
-      return { valid: false, message: "Lütfen Türkçe cevap verin" };
-    }
-  }
-  
-  // 4. İngilizce kelime tespiti (geliştirilmiş)
-  const englishWords = [
-    // Temel kelimeler
-    'the', 'and', 'or', 'but', 'that', 'this', 'our', 'your', 'see', 'you', 'next', 'time', 'prize', 'winners',
-    // Yaygın kelimeler
-    'what', 'where', 'when', 'why', 'how', 'who', 'which', 'can', 'will', 'would', 'should', 'could',
-    'have', 'has', 'had', 'do', 'does', 'did', 'get', 'got', 'make', 'made', 'take', 'took',
-    'go', 'went', 'come', 'came', 'say', 'said', 'tell', 'told', 'know', 'knew', 'think', 'thought',
-    // Küfür ve argo
-    'asshole', 'damn', 'shit', 'fuck', 'hell', 'bitch', 'stupid', 'idiot',
-    // Diğer
-    'here', 'there', 'from', 'with', 'about', 'into', 'through', 'during', 'before', 'after',
-    'case', 'must', 'move', 'doing', 'something', 'anything', 'nothing', 'everything'
-  ];
-  
-  const words = lowerTranscript.split(/\s+/).filter(w => w.length > 1);
-  const englishWordCount = words.filter(word => englishWords.includes(word)).length;
-  
-  // Eğer kelimelerin %30'u İngilizce ise reddet
-  if (words.length > 0 && (englishWordCount / words.length) > 0.3) {
+  // 2. Türkçe olmayan karakterler - BASIT KONTROL
+  const nonTurkishChars = /[^\sa-züğıöşçİĞÜÖŞÇ0-9.,!?()-]/i;
+  if (nonTurkishChars.test(transcript)) {
     return { valid: false, message: "Lütfen Türkçe cevap verin" };
   }
   
-  // 5. Contextual pattern matching (orta hız) - Soru tipine göre akıllı kontrol
-  const contextualResult = isContextualAnswer(transcript, question);
-  if (!contextualResult.valid) {
-    return { valid: false, message: contextualResult.message || "Lütfen soruya cevap verin" };
-  }
-  
-  // 6. İpucu isteme tespiti (ADIL YARIŞMA İÇİN)
-  const helpRequestWords = [
-    'ipucu', 'yardım', 'help', 'bilgi ver', 'açıkla', 'anlat', 'öğret',
-    'nasıl', 'nedir', 'ne demek', 'ne anlama', 'kim', 'nerede', 'ne zaman',
-    'hangi', 'kaç', 'sorum var', 'merak ediyorum', 'bilmek istiyorum',
-    'öğrenmek istiyorum', 'anlatır mısın', 'söyler misin'
-  ];
-  
-  const hasHelpRequest = helpRequestWords.some(word => lowerTranscript.includes(word));
-  if (hasHelpRequest) {
+  // 3. SORU TESPİTİ - Ana sorun
+  const questionWords = /\b(nedir|nasıl|ne zaman|kim|nerede|kaç|hangi|niye|niçin|neden|ne gibi)\b/i;
+  if (questionWords.test(transcript) || transcript.includes('?')) {
     return { 
       valid: false, 
-      message: "Adil bir yarışma olması için size yardımcı olamam. Lütfen kendi bilginizle soruyu cevaplayın!" 
+      message: "Bu bir soru gibi görünüyor. Lütfen soruya cevap verin." 
     };
   }
-
-  // 7. Meta konuşma tespiti (sadece belirsiz durumlarda)
-  if (lowerTranscript.length < 15) { // Kısa cevaplar için meta talk kontrolü
-    const metaTalk = [
-      'yarışma', 'başla', 'bitir', 'devam', 'geç', 'atla', 'geçelim',
-      'hazır', 'başlayalım', 'tamamdır', 'anladım',
-      'sonraki', 'önceki', 'bu soru', 'şu soru'
-    ];
-    
-    const isMetaTalk = metaTalk.some(phrase => lowerTranscript.includes(phrase));
-    if (isMetaTalk) {
-    return { valid: false, message: "Lütfen soruya cevap verin" };
-    }
+  
+  // 4. META KONUŞMA TESPİTİ - Ana sorun
+  const metaTalk = /\b(soruya cevap vermedim|cevap vermemiştim|neden saydık|sistem fark etmiyor|puan vermedin|saymaması gerekiyor|fark edemiyor mu)\b/i;
+  if (metaTalk.test(transcript)) {
+    return { 
+      valid: false, 
+      message: "Lütfen soruya doğrudan cevap verin" 
+    };
+  }
+  
+  // 5. İpucu isteme
+  const helpRequest = /\b(ipucu|yardım|açıkla|anlat|öğret)\b/i;
+  if (helpRequest.test(transcript)) {
+    return { 
+      valid: false, 
+      message: "Adil yarışma için yardımcı olamam. Lütfen kendi bilginizle cevaplayın!" 
+    };
   }
   
   return { valid: true };
 }
 
-// Contextual pattern matching helper function
-function isContextualAnswer(transcript: string, question: Question): { valid: boolean; message?: string } {
-  const lowerTranscript = transcript.toLowerCase().trim();
-  const lowerQuestion = question.question.toLowerCase();
-  
-  // MCQ soruları için özel kontrol
-  if (question.type === 'mcq') {
-    const hasValidMCQAnswer = 
-      // Harf seçenekleri
-      /[abcd]/i.test(lowerTranscript) || 
-      // Sayı seçenekleri
-                             /\b(bir|iki|üç|dört|birinci|ikinci|üçüncü|dördüncü)\b/i.test(lowerTranscript) ||
-      // Seçenek içeriği eşleşmesi
-                             (question.options && question.options.some(option => {
-        const optionKeywords = extractMeaningfulWords(option);
-        return optionKeywords.some(keyword => 
-          lowerTranscript.includes(keyword.toLowerCase()) && keyword.length > 3
-        );
-                             }));
-    
-    if (!hasValidMCQAnswer) {
-      return { valid: false, message: "Lütfen A, B, C veya D şıklarından birini seçin" };
-    }
-    
-    return { valid: true };
-  }
-  
-  // Açık uçlu sorular için kontrol
-  if (question.type === 'open') {
-    // Sayısal cevap beklenen sorular
-    const expectsNumber = /\b(kaç|ne kadar|yüzde|oran|sayı|miktar|ton|milyon|bin)\b/.test(lowerQuestion);
-    
-    if (expectsNumber) {
-      const hasNumber = /\d+/.test(transcript) || 
-                       /\b(bir|iki|üç|dört|beş|altı|yedi|sekiz|dokuz|on|yirmi|otuz|kırk|elli|altmış|yetmiş|seksen|doksan|yüz|bin|milyon)\b/i.test(lowerTranscript);
-      
-      if (!hasNumber) {
-        return { valid: false, message: "Lütfen sayısal bir cevap verin" };
-      }
-    }
-    
-    // Keyword overlap kontrolü (daha akıllı)
-    const questionKeywords = extractMeaningfulWords(lowerQuestion);
-    const transcriptKeywords = extractMeaningfulWords(lowerTranscript);
-    
-    // Çok kısa ve anlamsız cevapları filtrele
-    if (transcriptKeywords.length === 0 && lowerTranscript.length < 5) {
-      return { valid: false, message: "Lütfen daha detaylı cevap verin" };
-    }
-    
-    // Sadece "evet", "hayır", "bilmiyorum" gibi tek kelimeli cevapları kontrol et
-    const singleWordAnswers = ['evet', 'hayır', 'bilmiyorum', 'yok', 'var'];
-    if (transcriptKeywords.length === 1 && singleWordAnswers.includes(transcriptKeywords[0])) {
-      // Eğer soru evet/hayır sorusu değilse tek kelimeli cevabı reddet
-      const isYesNoQuestion = /\b(mi|mı|mu|mü)\b/.test(lowerQuestion) || 
-                             /\b(var mı|yok mu|doğru mu|yanlış mı)\b/.test(lowerQuestion);
-      
-      if (!isYesNoQuestion) {
-        return { valid: false, message: "Lütfen daha detaylı cevap verin" };
-      }
-    }
-    
-    return { valid: true };
-  }
-  
-  return { valid: true };
-}
-
-// Meaningful words extractor (stop words'leri çıkarır)
-function extractMeaningfulWords(text: string): string[] {
-  const stopWords = [
-    'bir', 'bu', 'şu', 'o', 've', 'ile', 'için', 'da', 'de', 'ta', 'te',
-    'den', 'dan', 'ten', 'tan', 'nin', 'nın', 'nun', 'nün', 'in', 'ın', 'un', 'ün',
-    'i', 'ı', 'u', 'ü', 'e', 'a', 'ye', 'ya', 'ne', 'na',
-    'ki', 'mi', 'mı', 'mu', 'mü', 'gibi', 'kadar', 'daha', 'en', 'çok', 'az',
-    'var', 'yok', 'olan', 'olarak', 'ise', 'eğer', 'ancak', 'fakat', 'ama',
-    'hangi', 'nasıl', 'neden', 'niçin', 'niye', 'ne', 'kim', 'kime', 'kimi',
-    'nerede', 'nereden', 'nereye', 'ne zaman', 'kaç', 'kaçıncı'
-  ];
-  
-  return text.toLowerCase()
-    .split(/\s+/)
-    .filter(word => 
-      word.length > 2 && 
-      !stopWords.includes(word) && 
-      !/^\d+$/.test(word) // Sadece rakamlardan oluşan kelimeleri de çıkar
-    );
-}
 
 // File cache for improved performance
 const fileCache = new Map<string, { data: any; timestamp: number; ttl: number }>();
@@ -555,22 +925,38 @@ function cleanupExpiredStates() {
   });
 }
 
-// Tool execution timeout wrapper
+// Tool execution timeout wrapper with improved error handling
 async function executeWithTimeout<T>(
   promise: Promise<T>, 
-  timeoutMs: number = 10000, 
+  timeoutMs: number = 15000, // Timeout'u 15 saniyeye çıkar
   toolName: string
 ): Promise<T> {
   const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error(`Tool ${toolName} timed out after ${timeoutMs}ms`)), timeoutMs);
+    setTimeout(() => {
+      console.error(`⏰ TIMEOUT: Tool ${toolName} exceeded ${timeoutMs}ms limit`);
+      reject(new Error(`Tool ${toolName} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
   });
   
-  return Promise.race([promise, timeoutPromise]);
+  try {
+    const result = await Promise.race([promise, timeoutPromise]);
+    console.log(`Tool ${toolName} completed successfully`);
+    return result;
+  } catch (error) {
+    console.error(`Tool ${toolName} failed:`, error);
+    throw error;
+  }
 }
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
   console.log(`⏱️ [${startTime}] POST REQUEST STARTED`);
+  
+  // 🧪 Test intent analysis on first request
+  if (!(global as any).intentTestRun) {
+    testIntentAnalysis();
+    (global as any).intentTestRun = true;
+  }
   
   try {
     // Cleanup expired states periodically
@@ -588,6 +974,131 @@ export async function POST(req: NextRequest) {
     
     if (!sessionId) {
       return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
+    }
+
+    // 🧠 INTENT ANALİZİ - KRİTİK KONTROL
+    if (tool === 'grade_answer' && (parameters.transcript || parameters.userAnswer)) {
+      const userText = parameters.transcript || parameters.userAnswer || '';
+      const intentAnalysis = analyzeUserIntent(userText);
+      console.log(`🧠 Intent Analysis:`, intentAnalysis);
+      
+      // YABANCI DİL REDDİ
+      if (intentAnalysis.intent === 'foreign' && intentAnalysis.confidence > 0.8) {
+        console.log(`🚫 Foreign language detected, rejecting grade_answer`);
+        return NextResponse.json({
+          success: false,
+          message: "Lütfen Türkçe cevap verin",
+          _meta: {
+            originalTool: tool,
+            rejectedReason: 'foreign_language',
+            intentAnalysis: intentAnalysis,
+            executionTime: Date.now() - startTime,
+            timestamp: Date.now(),
+            sessionId
+          }
+        });
+      }
+      
+      // KÜFÜR/HAKARET REDDİ
+      if (intentAnalysis.intent === 'profanity' && intentAnalysis.confidence > 0.8) {
+        console.log(`🚫 Profanity detected, rejecting grade_answer`);
+        return NextResponse.json({
+          success: false,
+          message: "Lütfen saygılı bir dille konuşun ve soruya cevap verin",
+          _meta: {
+            originalTool: tool,
+            rejectedReason: 'profanity',
+            intentAnalysis: intentAnalysis,
+            executionTime: Date.now() - startTime,
+            timestamp: Date.now(),
+            sessionId
+          }
+        });
+      }
+      
+      // SORU TESPİTİ - TOOL DEĞİŞTİR
+      if (intentAnalysis.intent === 'question' && intentAnalysis.confidence > 0.8) {
+        console.log(`🔄 Tool override: grade_answer → answer_user_question`);
+        
+        // State'i al
+        if (!gameStates.has(sessionId)) {
+          gameStates.set(sessionId, {
+            sessionId,
+            participant: null,
+            currentQuestionIndex: 0,
+            totalScore: 0,
+            questionsData: [],
+            answers: [],
+            status: 'waiting',
+            startTime: null,
+            endTime: null,
+            lastActivity: Date.now()
+          });
+        }
+        
+        const state = gameStates.get(sessionId)!;
+        state.lastActivity = Date.now();
+        
+        // Doğru tool'u çalıştır
+        const result = await executeWithTimeout(
+          handleUserQuestion({ question: userText }), 
+          5000, 
+          'answer_user_question'
+        );
+        
+        console.log(`✅ Tool result (override):`, result);
+        return NextResponse.json({
+          ...result,
+          _meta: {
+            originalTool: tool,
+            overriddenTool: 'answer_user_question',
+            intentAnalysis: intentAnalysis,
+            executionTime: Date.now() - startTime,
+            timestamp: Date.now(),
+            sessionId
+          }
+        });
+      }
+      
+      // META KONUŞMA REDDİ
+      if (intentAnalysis.intent === 'meta_talk' && intentAnalysis.confidence > 0.8) {
+        console.log(`🚫 Meta talk detected, rejecting grade_answer`);
+        return NextResponse.json({
+          success: false,
+          message: "Lütfen soruya doğrudan cevap verin",
+          _meta: {
+            originalTool: tool,
+            rejectedReason: 'meta_talk',
+            intentAnalysis: intentAnalysis,
+            executionTime: Date.now() - startTime,
+            timestamp: Date.now(),
+            sessionId
+          }
+        });
+      }
+      
+      // SOHBET REDDİ
+      if (intentAnalysis.intent === 'chat' && intentAnalysis.confidence > 0.7) {
+        console.log(`💬 Chat detected, rejecting grade_answer`);
+        return NextResponse.json({
+          success: false,
+          message: "Teşekkürler! Lütfen soruya cevap verin",
+          _meta: {
+            originalTool: tool,
+            rejectedReason: 'chat',
+            intentAnalysis: intentAnalysis,
+            executionTime: Date.now() - startTime,
+            timestamp: Date.now(),
+            sessionId
+          }
+        });
+      }
+      
+      // DÜŞÜK GÜVENLİ CEVAPLAR İÇİN UYARI
+      if (intentAnalysis.intent === 'answer' && intentAnalysis.confidence < 0.6) {
+        console.log(`⚠️ Low confidence answer detected: ${intentAnalysis.confidence}`);
+        // Devam et ama logla
+      }
     }
 
     // State'i al veya oluştur
@@ -637,7 +1148,7 @@ export async function POST(req: NextRequest) {
         break;
         
       case 'grade_answer':
-        result = await executeWithTimeout(handleGradeAnswer(state, parameters), 8000, tool);
+        result = await executeWithTimeout(handleGradeAnswer(state, parameters), 10000, tool); // 10 saniye timeout
         break;
         
       case 'next_question':
@@ -792,28 +1303,56 @@ async function handleGetQuestion(state: GameState): Promise<ToolCallResult> {
 async function handleGradeAnswer(state: GameState, parameters: any): Promise<ToolCallResult> {
   const startTime = Date.now();
   console.log(`⏱️ [${startTime}] handleGradeAnswer STARTED`);
+  console.log(`📊 Parameters:`, JSON.stringify(parameters, null, 2));
+  console.log(`🎯 Current question index: ${state.currentQuestionIndex}`);
+  console.log(`📝 Questions data length: ${state.questionsData?.length || 'undefined'}`);
   
   try {
+<<<<<<< HEAD
     const currentQuestion = state.questionsData[state.currentQuestionIndex];
+=======
+    console.log(`🔍 Checking currentQuestion...`);
+    const currentQuestion = state.questionsData[state.currentQuestionIndex];
+    console.log(`📋 Current question:`, currentQuestion ? 'EXISTS' : 'NULL/UNDEFINED');
+    
+>>>>>>> 193d71a (ön yüz değişti)
     if (!currentQuestion) {
+      console.log(`❌ NO CURRENT QUESTION - Index: ${state.currentQuestionIndex}, Array length: ${state.questionsData?.length}`);
       return {
         success: false,
         message: "Aktif soru bulunamadı"
       };
     }
     
+<<<<<<< HEAD
+    // Transcript ve selectedOption parametrelerini al
+    const transcript = parameters.transcript || parameters.userAnswer || '';
+    const selectedOption = parameters.selectedOption || null;
+=======
+    console.log(`✅ Current question found: ${currentQuestion.question?.substring(0, 50)}...`);
+    
     // Transcript ve selectedOption parametrelerini al
     const transcript = parameters.transcript || parameters.userAnswer || '';
     const selectedOption = parameters.selectedOption || null;
     
+    console.log(`🎤 Transcript: "${transcript}" (length: ${transcript.length})`);
+    console.log(`🔤 Selected option: "${selectedOption}"`);
+>>>>>>> 193d71a (ön yüz değişti)
+    
     // Eğer transcript boş veya çok kısa ise, değerlendirme yapma
     if (!transcript || transcript.trim().length < 2) {
+      console.log(`❌ TRANSCRIPT TOO SHORT OR EMPTY`);
       return {
         success: false,
         message: "Lütfen cevabınızı tekrar söyleyin"
       };
     }
     
+<<<<<<< HEAD
+=======
+    console.log(`✅ Transcript validation passed`);
+    
+>>>>>>> 193d71a (ön yüz değişti)
     // Soru zaten cevaplanmış mı kontrol et
     if (currentQuestion.isAnswered) {
       return {
@@ -857,20 +1396,48 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
     
     console.log(`🎯 Grading answer: "${transcript}" for question:`, currentQuestion.id);
     
+<<<<<<< HEAD
     // Hibrit değerlendirme sistemi
+=======
+    // ⚡ HİBRİT DEĞERLENDIRME: Önce Hızlı, Gerekirse AI
+    
+>>>>>>> 193d71a (ön yüz değişti)
     const evaluationStart = Date.now();
-    console.log(`⏱️ [${evaluationStart}] AI Evaluation STARTED`);
-    console.log(`🧠 Hibrit Değerlendirme - Question: "${currentQuestion.question}", User: "${transcript}"`);
+    console.log(`⏱️ [${evaluationStart}] Hybrid Evaluation STARTED`);
+    console.log(`🧠 Question: "${currentQuestion.question}", User: "${transcript}"`);
+    
+    console.log(`🚀 CALLING quickEvaluateAnswer...`);
+    // 1. HIZLI DEĞERLENDİRME (0.1ms)
+    const quickResult = quickEvaluateAnswer(currentQuestion, transcript, selectedOption);
+    console.log(`⚡ Quick evaluation COMPLETED: ${quickResult.confidence >= 0.8 ? 'HIGH CONFIDENCE' : 'LOW CONFIDENCE'} (${quickResult.points}/100)`);
+    console.log(`📊 Quick result:`, JSON.stringify(quickResult, null, 2));
     
     let evaluation;
-    try {
-      evaluation = await evaluateAnswerWithFullContext(
+    
+    // 2. Eğer hızlı değerlendirme güvenilirse, onu kullan
+    if (quickResult.confidence >= 0.7) { // Threshold'u düşürdük
+      evaluation = {
+        isCorrect: quickResult.isCorrect,
+        points: quickResult.points,
+        explanation: quickResult.explanation,
+        contextualInfo: currentQuestion.miniCorpus || "",
+        confidence: quickResult.confidence,
+        reasoning: "Quick evaluation - high confidence"
+      };
+      
+      console.log(`✅ Using quick evaluation result (${Date.now() - evaluationStart}ms)`);
+    } else {
+      // 3. AI değerlendirme - TIMEOUT KORUMASLI
+      console.log(`🤖 Low confidence, using AI evaluation with timeout protection...`);
+      
+      const aiPromise = evaluateAnswerWithFullContext(
         currentQuestion, 
         transcript,
         selectedOption,
         state.currentQuestionIndex
       );
       
+<<<<<<< HEAD
       const evaluationEnd = Date.now();
       console.log(`⏱️ [${evaluationEnd}] AI Evaluation COMPLETED (${evaluationEnd - evaluationStart}ms)`);
       console.log(`🎯 Hibrit Evaluation Result: ${evaluation.isCorrect ? 'CORRECT' : 'INCORRECT'} (${evaluation.points}/100 puan)`);
@@ -884,22 +1451,52 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
         message: "Cevabınız değerlendirilemedi. Lütfen cevabınızı tekrar söyleyin.",
         needsRetry: true
       };
+=======
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('AI evaluation timeout')), 3000); // 3 saniye
+      });
+      
+      try {
+        evaluation = await Promise.race([aiPromise, timeoutPromise]);
+        console.log(`🎯 AI Evaluation completed (${Date.now() - evaluationStart}ms)`);
+      } catch (error) {
+        console.error(`❌ AI evaluation failed/timeout, using quick result:`, error);
+        
+        // AI başarısız/timeout olursa hızlı sonucu kullan
+        evaluation = {
+          isCorrect: quickResult.isCorrect,
+          points: Math.max(quickResult.points, 50), // En az 50 puan ver
+          explanation: quickResult.explanation + " (AI timeout, hızlı değerlendirme kullanıldı)",
+          contextualInfo: currentQuestion.miniCorpus || "",
+          confidence: 0.7,
+          reasoning: "Fallback to quick evaluation due to AI timeout"
+        };
+      }
+>>>>>>> 193d71a (ön yüz değişti)
     }
     
     
     // Kısmi puan hesaplama sistemi
     const maxPoints = currentQuestion.points;
+<<<<<<< HEAD
     const earnedPoints = Math.round((evaluation.points / 100) * maxPoints);
+=======
+    const earnedPoints = Math.round(((evaluation as any).points / 100) * maxPoints);
+>>>>>>> 193d71a (ön yüz değişti)
     state.totalScore += earnedPoints;
     
     // Cevabı kaydet (genişletilmiş) - Backward compatibility için
     state.answers.push({
       questionId: currentQuestion.id,
       answer: transcript,
+<<<<<<< HEAD
       correct: evaluation.isCorrect,
+=======
+      correct: (evaluation as any).isCorrect,
+>>>>>>> 193d71a (ön yüz değişti)
       points: earnedPoints,
       maxPoints: maxPoints,
-      percentage: evaluation.points
+      percentage: (evaluation as any).points
     });
     
     // Soruyu cevaplandı olarak işaretle ve bilgileri kaydet
@@ -910,6 +1507,7 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
     currentQuestion.attemptCount++;
     currentQuestion.lastAttemptTime = new Date().toISOString();
     
+<<<<<<< HEAD
     // Güncellenmiş soruları dosyaya kaydet
     try {
       const questionsPath = path.join(process.cwd(), 'data', 'questions.json');
@@ -920,17 +1518,24 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
     }
     
     console.log(`📊 Answer graded: ${evaluation.isCorrect ? 'CORRECT' : 'PARTIAL/INCORRECT'}, Points: ${earnedPoints}/${maxPoints} (${evaluation.points}%), Total: ${state.totalScore}`);
+=======
+    // ✅ SADECE RAM'DE GÜNCELLE - Dosyaya yazma!
+    console.log(`💾 Question ${currentQuestion.id} updated IN MEMORY: isAnswered=true, userAnswer="${transcript}", userScore=${earnedPoints}, attemptCount=${currentQuestion.attemptCount}`);
+    
+    console.log(`📊 Answer graded: ${(evaluation as any).isCorrect ? 'CORRECT' : 'PARTIAL/INCORRECT'}, Points: ${earnedPoints}/${maxPoints} (${(evaluation as any).points}%), Total: ${state.totalScore}`);
+>>>>>>> 193d71a (ön yüz değişti)
     
     // Açıklama: miniCorpus + AI contextual info + hibrit explanation
     const fullExplanation = currentQuestion.miniCorpus + 
-      (evaluation?.contextualInfo ? ` ${evaluation.contextualInfo}` : '') +
-      (evaluation?.explanation ? ` (${evaluation.explanation})` : '');
+      ((evaluation as any)?.contextualInfo ? ` ${(evaluation as any).contextualInfo}` : '') +
+      ((evaluation as any)?.explanation ? ` (${(evaluation as any).explanation})` : '');
 
     const endTime = Date.now();
     console.log(`⏱️ [${endTime}] handleGradeAnswer COMPLETED (${endTime - startTime}ms total)`);
     
     return {
       success: true,
+<<<<<<< HEAD
       correct: evaluation.isCorrect,
       points: earnedPoints,
       maxPoints: maxPoints,
@@ -941,6 +1546,18 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
       message: `Cevap değerlendirildi: ${evaluation.isCorrect ? 'Doğru' : 'Kısmi/Yanlış'} (${evaluation.points}/100)`,
       confidence: evaluation.confidence,
       reasoning: evaluation.reasoning,
+=======
+      correct: (evaluation as any).isCorrect,
+      points: earnedPoints,
+      maxPoints: maxPoints,
+      percentage: (evaluation as any).points,
+      score: state.totalScore,
+      explanation: fullExplanation,
+      questionIndex: state.currentQuestionIndex,
+      message: `Cevap değerlendirildi: ${(evaluation as any).isCorrect ? 'Doğru' : 'Kısmi/Yanlış'} (${(evaluation as any).points}/100)`,
+      confidence: (evaluation as any).confidence,
+      reasoning: (evaluation as any).reasoning,
+>>>>>>> 193d71a (ön yüz değişti)
       questionNowAnswered: true
     };
     

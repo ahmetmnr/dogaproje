@@ -1,0 +1,27 @@
+---
+description:
+globs:
+alwaysApply: true
+Use TypeScript for all files. Never use any type, always define proper interfaces.
+
+Use React + TypeScript + Tailwind CSS for frontend. Node.js + Express + Socket.IO for backend.
+
+For OpenAI Realtime API always use: temperature: 0.2, seed: 12345, model: "gpt-4o-realtime-preview" for consistency.
+
+Implement Voice Activity Detection with configurable parameters: threshold, minSpeechDuration, maxSilenceDuration.
+
+Create these exact tools for OpenAI function calling: advance_question, evaluate_answer, start_competition, end_competition, answer_zero_waste_question, handle_unclear_input. Each tool must have detailed Turkish descriptions.
+
+Never use emojis or icons in prompts. Keep prompts clean, professional, and in Turkish only.
+
+Use WebSocket for client-backend communication and OpenAI Realtime API WebSocket for backend-OpenAI communication.
+
+Store session data in Redis with pattern: session:{participantId}. Support max 100 concurrent sessions.
+
+Implement audio streaming with MediaRecorder API, 100ms chunks, base64 encoding.
+
+Handle connection drops with 5 retry attempts using exponential backoff.
+
+Always validate user input and implement proper error handling for all API calls.
+
+---
