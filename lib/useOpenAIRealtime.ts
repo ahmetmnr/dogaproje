@@ -5,6 +5,8 @@ import { UserInfo, Question, ToolCallResult } from '@/types/quiz';
 import { UnifiedStateManager, UnifiedGameState, GameContext } from './UnifiedStateManager';
 import { IntegratedToolCallManager, ToolCallDecision } from './IntegratedToolCallManager';
 import { AudioEnvironmentManager, AudioEnvironmentConfig } from './AudioEnvironmentManager';
+import { redisSessionManager, SessionData } from './RedisSessionManager';
+import { v4 as uuidv4 } from 'uuid';
 
 interface UseOpenAIRealtimeProps {
   userInfo: UserInfo;
@@ -15,6 +17,14 @@ interface UseOpenAIRealtimeProps {
   onError?: (error: string) => void;
   audioEnvironment?: string; // Ortam tipi seçimi
   customAudioConfig?: Partial<AudioEnvironmentConfig>; // Özel ayarlar
+  onAudioLevelUpdate?: (level: number) => void;
+  onAudioConfigChange?: (config: AudioEnvironmentConfig) => void;
+  
+  // Yeni Redis props'ları
+  enableRedisSession?: boolean; // Redis kullanılsın mı?
+  gameId?: string; // Host tarafından verilen game ID
+  onSessionUpdate?: (sessionData: SessionData) => void;
+  onLeaderboardUpdate?: (leaderboard: any[]) => void;
 }
 
 // WebRTC Client interface tanımı
@@ -222,6 +232,12 @@ export function useOpenAIRealtime({
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [tokenExpiresAt, setTokenExpiresAt] = useState<string | null>(null);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  
+  // Yeni Redis state'leri
+  const [participantId] = useState(() => uuidv4()); // Unique participant ID
+  const [sessionData, setSessionData] = useState<SessionData | null>(null);
+  const [isRedisConnected, setIsRedisConnected] = useState(false);
+  const [connectionId] = useState(() => uuidv4()); // WebSocket connection ID
   
   const clientRef = useRef<WebRTCClient | null>(null);
   const tokenRefreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
