@@ -7,6 +7,7 @@ import { IntegratedToolCallManager, ToolCallDecision } from './IntegratedToolCal
 import { AudioEnvironmentManager, AudioEnvironmentConfig } from './AudioEnvironmentManager';
 import { redisSessionManager, SessionData } from './RedisSessionManager';
 import { v4 as uuidv4 } from 'uuid';
+import { DebugLogger, RealtimeAPILogger, VADLogger, GameFlowLogger } from './DebugLogger';
 
 interface UseOpenAIRealtimeProps {
   userInfo: UserInfo;
