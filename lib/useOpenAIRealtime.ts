@@ -256,7 +256,7 @@ export function useOpenAIRealtime({
       // Config değişikliklerini dinle
       audioEnvManagerRef.current.onConfigurationChange((config) => {
         setCurrentAudioConfig(config);
-        console.log('🎵 Audio config updated:', config.name);
+        console.log('🎵 Audio config updated:', config.environmentType);
       });
       
       // İlk config'i set et
@@ -467,7 +467,7 @@ export function useOpenAIRealtime({
             interrupt_response: false
           };
           
-          console.log('🎵 Using audio config:', audioConfig?.name, turnDetectionConfig);
+          console.log('🎵 Using audio config:', audioConfig?.environmentType, turnDetectionConfig);
           
           client.sendEvent({
             type: 'session.update',
@@ -496,7 +496,7 @@ KONUŞMA STİLİ:
 - Umut verici ve motive edici ol
 
 ORTAM AYARLARI:
-Mevcut ortam: ${audioConfig?.name || 'Bilinmeyen'}
+Mevcut ortam: ${audioConfig?.environmentType || 'normal'}
 Gürültü seviyesi: ${audioConfig?.backgroundNoiseLevel || 'orta'}
 VAD eşiği: ${turnDetectionConfig.threshold}`,
               voice: 'alloy',
@@ -649,7 +649,7 @@ VAD eşiği: ${turnDetectionConfig.threshold}`,
               
             case 'input_audio_buffer.speech_started':
               setIsListening(true);
-              console.log('🎤 Speech started - Current VAD config:', audioEnvManagerRef.current?.getCurrentConfig().vadThreshold);
+              console.log('🎤 Speech started - Current VAD config:', audioEnvManagerRef.current?.getCurrentConfig().threshold);
               
               if (stateManagerRef.current) {
                 stateManagerRef.current.updateUserState('speaking');
@@ -665,7 +665,7 @@ VAD eşiği: ${turnDetectionConfig.threshold}`,
               
             case 'input_audio_buffer.speech_stopped':
               setIsListening(false);
-              console.log('🎤 Speech stopped - Current silence config:', audioEnvManagerRef.current?.getCurrentConfig().silenceDuration);
+              console.log('🎤 Speech stopped - Current silence config:', audioEnvManagerRef.current?.getCurrentConfig().maxSilenceDuration);
               
               if (stateManagerRef.current) {
                 stateManagerRef.current.updateUserState('waiting');
@@ -915,7 +915,7 @@ VAD eşiği: ${turnDetectionConfig.threshold}`,
         const newTurnDetectionConfig = audioEnvManagerRef.current.getTurnDetectionConfig();
         const newAudioConfig = audioEnvManagerRef.current.getCurrentConfig();
         
-        console.log('🔄 Updating session with new audio config:', newAudioConfig.name);
+        console.log('🔄 Updating session with new audio config:', newAudioConfig.environmentType);
         
         clientRef.current.sendEvent({
           type: 'session.update',
@@ -944,10 +944,10 @@ KONUŞMA STİLİ:
 - Umut verici ve motive edici ol
 
 ORTAM AYARLARI:
-Mevcut ortam: ${newAudioConfig.name}
+Mevcut ortam: ${newAudioConfig.environmentType}
 Gürültü seviyesi: ${newAudioConfig.backgroundNoiseLevel}
 VAD eşiği: ${newTurnDetectionConfig.threshold}
-Ses hassasiyeti: ${newAudioConfig.micSensitivity}`
+Ses hassasiyeti: ${newAudioConfig.microphoneSensitivity}`
           }
         });
       }

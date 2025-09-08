@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { UserInfo, Question } from '@/types/quiz';
 import { useOpenAIRealtime } from '@/lib/useOpenAIRealtime';
-import { AUDIO_ENVIRONMENT_PRESETS } from '@/lib/AudioEnvironmentManager';
+import { ENVIRONMENT_PRESETS } from '@/lib/AudioEnvironmentManager';
 import Avatar from './Avatar';
 import QuestionDisplay from './QuestionDisplay';
 import ScoreBoard from './ScoreBoard';
@@ -129,14 +129,14 @@ export default function QuizInterface({ userInfo, onBack }: QuizInterfaceProps) 
               <span className="mr-2">🎵</span>
               <span>Ortam: </span>
               <span className="font-medium ml-1">
-                {currentAudioConfig?.name || 'DOĞA Etkinlik Alanı'}
+                {currentAudioConfig?.environmentType || 'normal'}
               </span>
             </div>
             
             {/* Audio Config Preview */}
             {currentAudioConfig && (
               <div className="text-xs text-gray-600 text-center">
-                VAD: {currentAudioConfig.vadThreshold} | Sessizlik: {currentAudioConfig.silenceDuration}ms | 
+                VAD: {currentAudioConfig.threshold} | Sessizlik: {currentAudioConfig.maxSilenceDuration}ms | 
                 Gürültü: {currentAudioConfig.backgroundNoiseLevel}
               </div>
             )}
@@ -260,11 +260,11 @@ export default function QuizInterface({ userInfo, onBack }: QuizInterfaceProps) 
                       </div>
                       <div className="text-sm text-blue-700">
                         <div className="mb-1">
-                          <strong>Ortam:</strong> {currentAudioConfig.name}
+                          <strong>Ortam:</strong> {currentAudioConfig.environmentType}
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div>VAD Eşiği: {currentAudioConfig.vadThreshold}</div>
-                          <div>Sessizlik: {currentAudioConfig.silenceDuration}ms</div>
+                          <div>VAD Eşiği: {currentAudioConfig.threshold}</div>
+                          <div>Sessizlik: {currentAudioConfig.maxSilenceDuration}ms</div>
                         </div>
                       </div>
                     </div>
@@ -364,10 +364,10 @@ export default function QuizInterface({ userInfo, onBack }: QuizInterfaceProps) 
                   {currentAudioConfig && (
                     <div className="mb-4 bg-blue-50 rounded-xl p-3 text-center">
                       <div className="text-xs text-blue-600 font-medium">
-                        {currentAudioConfig.name}
+                        {currentAudioConfig.environmentType}
                       </div>
                       <div className="text-xs text-blue-500 mt-1">
-                        VAD: {currentAudioConfig.vadThreshold} | Sessizlik: {currentAudioConfig.silenceDuration}ms
+                        VAD: {currentAudioConfig.threshold} | Sessizlik: {currentAudioConfig.maxSilenceDuration}ms
                       </div>
                     </div>
                   )}
@@ -433,30 +433,19 @@ export default function QuizInterface({ userInfo, onBack }: QuizInterfaceProps) 
       </div>
 
       {/* Audio Settings Panel */}
-      <AudioSettingsPanel
-        audioManager={getAudioManager()}
-        isOpen={showAudioSettings}
-        onClose={() => setShowAudioSettings(false)}
-        onConfigChange={(config) => {
-          console.log('🎵 Audio config changed:', config.name);
-          
-          // Config değişikliğini hemen uygula (bağlı olsun olmasın)
-          const envKey = Object.entries(AUDIO_ENVIRONMENT_PRESETS || {})
-            .find(([key, preset]) => preset.name === config.name)?.[0] || 'doga_event';
-          
-          setAudioEnvironmentState(envKey);
-          
-          // AudioManager'a yeni config'i uygula
-          if (getAudioManager()) {
-            // Eğer preset'lerden biri seçildiyse
-            if (envKey !== 'custom') {
-              setAudioEnvironment(envKey);
-            } else {
-              // Custom ayarlar ise direkt uygula
-              getAudioManager()?.setCustomConfig(config);
-            }
+      {currentAudioConfig && (
+        <AudioSettingsPanel
+          config={currentAudioConfig}
+          isVisible={showAudioSettings}
+          onToggle={() => setShowAudioSettings(!showAudioSettings)}
+          onConfigChange={(configUpdates) => {
+            console.log('🎵 Audio config changed:', configUpdates);
             
-            console.log('✅ Audio settings updated:', config.name);
+            // AudioManager'a yeni config'i uygula
+            const audioManager = getAudioManager();
+            if (audioManager) {
+              audioManager.updateUserSettings(configUpdates);
+            }
             
             // Eğer bağlı ise canlı güncelle
             if (isConnected) {
@@ -464,9 +453,10 @@ export default function QuizInterface({ userInfo, onBack }: QuizInterfaceProps) 
             } else {
               console.log('📝 Settings saved for next connection');
             }
-          }
-        }}
-      />
+          }}
+          audioLevel={0} // TODO: Get real audio level
+        />
+      )}
     </div>
   );
 }

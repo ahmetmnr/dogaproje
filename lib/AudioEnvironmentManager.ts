@@ -1,140 +1,106 @@
 // Audio Environment Manager - Etkinlik alanına göre parametrik ayarlar
 
 export interface AudioEnvironmentConfig {
-  name: string;
-  description: string;
-  vadThreshold: number;
-  silenceDuration: number;
-  prefixPadding: number;
-  idleTimeout: number;
-  interruptResponse: boolean;
-  audioGainControl: boolean;
-  noiseSuppression: boolean;
+  // Temel VAD parametreleri
+  threshold: number;
+  minSpeechDuration: number; 
+  maxSilenceDuration: number;
+  preSpeechPadding: number;
+  postSpeechPadding: number;
+  
+  // Yeni kullanıcı ayarlanabilir özellikler
+  microphoneSensitivity: number; // 0.1-1.0
+  noiseSuppressionLevel: number; // 0-10
+  audioQuality: '8kHz' | '16kHz' | '24kHz';
   echoCancellation: boolean;
-  micSensitivity: number;
-  backgroundNoiseLevel: 'low' | 'medium' | 'high' | 'extreme';
+  autoGainControl: boolean;
+  
+  // Ortam tipi
+  environmentType: 'quiet' | 'normal' | 'noisy' | 'very_noisy';
+  
+  // Gelişmiş ayarlar
+  adaptiveThreshold: boolean;
+  backgroundNoiseLevel: number; // 0-1
+  speechDetectionSensitivity: number; // 0-1
 }
 
-export const AUDIO_ENVIRONMENT_PRESETS: Record<string, AudioEnvironmentConfig> = {
-  // Sessiz iç mekan (ofis, ev, kütüphane)
-  quiet_indoor: {
-    name: 'Sessiz İç Mekan',
-    description: 'Ofis, ev, kütüphane gibi sessiz ortamlar',
-    vadThreshold: 0.3,
-    silenceDuration: 800,
-    prefixPadding: 200,
-    idleTimeout: 8000,
-    interruptResponse: true,
-    audioGainControl: true,
-    noiseSuppression: false,
-    echoCancellation: true,
-    micSensitivity: 0.7,
-    backgroundNoiseLevel: 'low'
+export const ENVIRONMENT_PRESETS: Record<string, Partial<AudioEnvironmentConfig>> = {
+  quiet: {
+    threshold: 0.3,
+    minSpeechDuration: 200,
+    maxSilenceDuration: 1000,
+    microphoneSensitivity: 0.7,
+    noiseSuppressionLevel: 3,
+    backgroundNoiseLevel: 0.1,
+    speechDetectionSensitivity: 0.8,
+    adaptiveThreshold: false
   },
-
-  // Normal iç mekan (cafe, restoran)
-  normal_indoor: {
-    name: 'Normal İç Mekan',
-    description: 'Cafe, restoran, normal ofis ortamları',
-    vadThreshold: 0.5,
-    silenceDuration: 1000,
-    prefixPadding: 300,
-    idleTimeout: 10000,
-    interruptResponse: true,
-    audioGainControl: true,
-    noiseSuppression: true,
-    echoCancellation: true,
-    micSensitivity: 0.8,
-    backgroundNoiseLevel: 'medium'
+  normal: {
+    threshold: 0.5, 
+    minSpeechDuration: 250,
+    maxSilenceDuration: 1500,
+    microphoneSensitivity: 0.8,
+    noiseSuppressionLevel: 5,
+    backgroundNoiseLevel: 0.3,
+    speechDetectionSensitivity: 0.7,
+    adaptiveThreshold: true
   },
-
-  // Gürültülü iç mekan (etkinlik salonu, konferans)
-  noisy_indoor: {
-    name: 'Gürültülü İç Mekan',
-    description: 'Etkinlik salonu, konferans, toplantı salonları',
-    vadThreshold: 0.7,
-    silenceDuration: 1500,
-    prefixPadding: 500,
-    idleTimeout: 12000,
-    interruptResponse: false,
-    audioGainControl: true,
-    noiseSuppression: true,
-    echoCancellation: true,
-    micSensitivity: 0.9,
-    backgroundNoiseLevel: 'high'
+  noisy: {
+    threshold: 0.7,
+    minSpeechDuration: 300, 
+    maxSilenceDuration: 2000,
+    microphoneSensitivity: 0.9,
+    noiseSuppressionLevel: 7,
+    backgroundNoiseLevel: 0.6,
+    speechDetectionSensitivity: 0.6,
+    adaptiveThreshold: true
   },
-
-  // Çok gürültülü (fuar, açık alan etkinlik)
   very_noisy: {
-    name: 'Çok Gürültülü Ortam',
-    description: 'Fuar, açık alan etkinlikleri, stadyum',
-    vadThreshold: 0.8,
-    silenceDuration: 2000,
-    prefixPadding: 700,
-    idleTimeout: 15000,
-    interruptResponse: false,
-    audioGainControl: true,
-    noiseSuppression: true,
-    echoCancellation: true,
-    micSensitivity: 1.0,
-    backgroundNoiseLevel: 'extreme'
-  },
-
-  // Açık alan (park, bahçe)
-  outdoor: {
-    name: 'Açık Alan',
-    description: 'Park, bahçe, açık hava etkinlikleri',
-    vadThreshold: 0.6,
-    silenceDuration: 1200,
-    prefixPadding: 400,
-    idleTimeout: 10000,
-    interruptResponse: false,
-    audioGainControl: true,
-    noiseSuppression: true,
-    echoCancellation: false, // Açık alanda echo az
-    micSensitivity: 0.85,
-    backgroundNoiseLevel: 'medium'
-  },
-
-  // Araç içi
-  vehicle: {
-    name: 'Araç İçi',
-    description: 'Otobüs, araba, tren gibi hareketli ortamlar',
-    vadThreshold: 0.75,
-    silenceDuration: 1800,
-    prefixPadding: 600,
-    idleTimeout: 12000,
-    interruptResponse: false,
-    audioGainControl: true,
-    noiseSuppression: true,
-    echoCancellation: true,
-    micSensitivity: 0.95,
-    backgroundNoiseLevel: 'high'
-  },
-
-  // Özel etkinlik (DOĞA yarışması için optimize)
-  doga_event: {
-    name: 'DOĞA Etkinlik Alanı',
-    description: 'DOĞA yarışması için özel optimize edilmiş ayarlar',
-    vadThreshold: 0.8,
-    silenceDuration: 1500,
-    prefixPadding: 500,
-    idleTimeout: 10000,
-    interruptResponse: false,
-    audioGainControl: true,
-    noiseSuppression: true,
-    echoCancellation: true,
-    micSensitivity: 0.9,
-    backgroundNoiseLevel: 'high'
+    threshold: 0.9,
+    minSpeechDuration: 400,
+    maxSilenceDuration: 2500, 
+    microphoneSensitivity: 1.0,
+    noiseSuppressionLevel: 10,
+    backgroundNoiseLevel: 0.8,
+    speechDetectionSensitivity: 0.5,
+    adaptiveThreshold: true
   }
 };
 
+export const DEFAULT_AUDIO_CONFIG: AudioEnvironmentConfig = {
+  threshold: 0.5,
+  minSpeechDuration: 250,
+  maxSilenceDuration: 1500,
+  preSpeechPadding: 100,
+  postSpeechPadding: 200,
+  microphoneSensitivity: 0.8,
+  noiseSuppressionLevel: 5,
+  audioQuality: '16kHz',
+  echoCancellation: true,
+  autoGainControl: true,
+  environmentType: 'normal',
+  adaptiveThreshold: true,
+  backgroundNoiseLevel: 0.3,
+  speechDetectionSensitivity: 0.7
+};
+
+// Legacy presets removed - using new ENVIRONMENT_PRESETS and DEFAULT_AUDIO_CONFIG instead
+
 export class AudioEnvironmentManager {
-  private currentConfig: AudioEnvironmentConfig;
+  private config: AudioEnvironmentConfig;
   private onConfigChange?: (config: AudioEnvironmentConfig) => void;
+  private audioContext: AudioContext | null = null;
+  private analyser: AnalyserNode | null = null;
+  private currentAudioLevel: number = 0;
+  private adaptiveThresholdHistory: number[] = [];
   
-  constructor(initialEnvironment: string = 'doga_event') {
-    this.currentConfig = AUDIO_ENVIRONMENT_PRESETS[initialEnvironment] || AUDIO_ENVIRONMENT_PRESETS.doga_event;
+  constructor(initialEnvironment: string = 'normal') {
+    const preset = ENVIRONMENT_PRESETS[initialEnvironment];
+    this.config = preset ? { ...DEFAULT_AUDIO_CONFIG, ...preset } : DEFAULT_AUDIO_CONFIG;
+    this.audioContext = null;
+    this.analyser = null;
+    this.currentAudioLevel = 0;
+    this.adaptiveThresholdHistory = [];
     this.detectEnvironmentAutomatically();
   }
 
@@ -194,57 +160,55 @@ export class AudioEnvironmentManager {
 
   // Ortam ayarlama
   setEnvironment(environmentKey: string): void {
-    const config = AUDIO_ENVIRONMENT_PRESETS[environmentKey];
-    if (!config) {
+    const preset = ENVIRONMENT_PRESETS[environmentKey];
+    if (!preset) {
       console.warn(`Unknown environment: ${environmentKey}, using default`);
       return;
     }
 
-    this.currentConfig = config;
-    console.log(`🎵 Environment set to: ${config.name}`);
+    this.config = { ...DEFAULT_AUDIO_CONFIG, ...preset, environmentType: environmentKey as any };
+    console.log(`🎵 Environment set to: ${environmentKey}`);
     console.log(`📊 Config:`, {
-      vadThreshold: config.vadThreshold,
-      silenceDuration: config.silenceDuration,
-      backgroundNoise: config.backgroundNoiseLevel
+      threshold: this.config.threshold,
+      maxSilenceDuration: this.config.maxSilenceDuration,
+      backgroundNoiseLevel: this.config.backgroundNoiseLevel
     });
 
     // Notify listeners
-    this.onConfigChange?.(config);
+    this.onConfigChange?.(this.config);
   }
 
   // Manuel ayarlama
   setCustomConfig(customConfig: Partial<AudioEnvironmentConfig>): void {
-    this.currentConfig = {
-      ...this.currentConfig,
-      ...customConfig,
-      name: 'Özel Ayarlar',
-      description: 'Kullanıcı tarafından özelleştirilmiş'
+    this.config = {
+      ...this.config,
+      ...customConfig
     };
 
     console.log('🎵 Custom audio config applied:', customConfig);
-    this.onConfigChange?.(this.currentConfig);
+    this.onConfigChange?.(this.config);
   }
 
   // Gerçek zamanlı ayarlama (gürültü seviyesine göre)
   adaptToCurrentNoise(currentNoiseLevel: number): void {
-    let adjustedConfig = { ...this.currentConfig };
+    let adjustedConfig = { ...this.config };
 
     // Gürültü seviyesine göre dinamik ayarlama
     if (currentNoiseLevel > 100) {
       // Çok gürültülü - ayarları sıkılaştır
-      adjustedConfig.vadThreshold = Math.min(0.9, this.currentConfig.vadThreshold + 0.1);
-      adjustedConfig.silenceDuration = Math.min(3000, this.currentConfig.silenceDuration + 500);
-      adjustedConfig.micSensitivity = 1.0;
+      adjustedConfig.threshold = Math.min(0.9, this.config.threshold + 0.1);
+      adjustedConfig.maxSilenceDuration = Math.min(3000, this.config.maxSilenceDuration + 500);
+      adjustedConfig.microphoneSensitivity = 1.0;
     } else if (currentNoiseLevel < 20) {
       // Çok sessiz - ayarları gevşet
-      adjustedConfig.vadThreshold = Math.max(0.2, this.currentConfig.vadThreshold - 0.1);
-      adjustedConfig.silenceDuration = Math.max(500, this.currentConfig.silenceDuration - 300);
-      adjustedConfig.micSensitivity = 0.6;
+      adjustedConfig.threshold = Math.max(0.2, this.config.threshold - 0.1);
+      adjustedConfig.maxSilenceDuration = Math.max(500, this.config.maxSilenceDuration - 300);
+      adjustedConfig.microphoneSensitivity = 0.6;
     }
 
-    if (JSON.stringify(adjustedConfig) !== JSON.stringify(this.currentConfig)) {
+    if (JSON.stringify(adjustedConfig) !== JSON.stringify(this.config)) {
       console.log(`🔄 Adapting to noise level: ${currentNoiseLevel}`);
-      this.currentConfig = adjustedConfig;
+      this.config = adjustedConfig;
       this.onConfigChange?.(adjustedConfig);
     }
   }
@@ -267,30 +231,35 @@ export class AudioEnvironmentManager {
 
   // Mevcut konfigürasyonu al
   getCurrentConfig(): AudioEnvironmentConfig {
-    return { ...this.currentConfig };
+    return { ...this.config };
   }
 
   // OpenAI Realtime API formatında turn_detection config
   getTurnDetectionConfig(): any {
     return {
       type: 'server_vad',
-      threshold: this.currentConfig.vadThreshold,
-      prefix_padding_ms: this.currentConfig.prefixPadding,
-      silence_duration_ms: this.currentConfig.silenceDuration,
-      idle_timeout_ms: this.currentConfig.idleTimeout,
+      threshold: this.config.threshold,
+      prefix_padding_ms: this.config.preSpeechPadding,
+      silence_duration_ms: this.config.maxSilenceDuration,
       create_response: true,
-      interrupt_response: this.currentConfig.interruptResponse
+      interrupt_response: false
     };
   }
 
   // Web Audio API formatında audio constraints
   getAudioConstraints(): MediaTrackConstraints {
+    const sampleRate = this.getSampleRateFromQuality(this.config.audioQuality);
+    
     return {
-      echoCancellation: this.currentConfig.echoCancellation,
-      noiseSuppression: this.currentConfig.noiseSuppression,
-      autoGainControl: this.currentConfig.audioGainControl,
-      sampleRate: 16000,
-      channelCount: 1
+      echoCancellation: this.config.echoCancellation,
+      noiseSuppression: this.config.noiseSuppressionLevel > 0,
+      autoGainControl: this.config.autoGainControl,
+      sampleRate: sampleRate,
+      channelCount: 1,
+      // Gelişmiş ayarlar
+      ...(this.config.noiseSuppressionLevel > 5 && {
+        noiseSuppression: { exact: true }
+      })
     };
   }
 
@@ -302,8 +271,8 @@ export class AudioEnvironmentManager {
   // Debugging ve monitoring
   getEnvironmentStatus(): any {
     return {
-      currentEnvironment: this.currentConfig.name,
-      config: this.currentConfig,
+      currentEnvironment: this.config.environmentType,
+      config: this.config,
       turnDetection: this.getTurnDetectionConfig(),
       audioConstraints: this.getAudioConstraints()
     };
@@ -311,9 +280,9 @@ export class AudioEnvironmentManager {
 
   // Kullanılabilir ortamları listele
   getAvailableEnvironments(): Array<{key: string, config: AudioEnvironmentConfig}> {
-    return Object.entries(AUDIO_ENVIRONMENT_PRESETS).map(([key, config]) => ({
+    return Object.entries(ENVIRONMENT_PRESETS).map(([key, preset]) => ({
       key,
-      config
+      config: { ...DEFAULT_AUDIO_CONFIG, ...preset, environmentType: key as any }
     }));
   }
 
@@ -329,5 +298,109 @@ export class AudioEnvironmentManager {
       recommendations: [],
       detectedNoiseLevel: 50
     };
+  }
+
+  // Ortam tipine göre ayarları uygula
+  applyEnvironmentPreset(environmentType: string): void {
+    const preset = ENVIRONMENT_PRESETS[environmentType];
+    if (preset) {
+      this.config = { ...this.config, ...preset, environmentType: environmentType as any };
+    }
+  }
+
+  // Kullanıcı ayarlarını güncelle
+  updateUserSettings(settings: Partial<AudioEnvironmentConfig>): void {
+    this.config = { ...this.config, ...settings };
+  }
+
+
+  // Ses kalitesinden sample rate'i çıkar
+  private getSampleRateFromQuality(quality: string): number {
+    switch (quality) {
+      case '8kHz': return 8000;
+      case '16kHz': return 16000;
+      case '24kHz': return 24000;
+      default: return 16000;
+    }
+  }
+
+  // Gerçek zamanlı ses seviyesi izleme
+  startAudioLevelMonitoring(stream: MediaStream): void {
+    if (!this.audioContext) {
+      this.audioContext = new AudioContext();
+    }
+
+    this.analyser = this.audioContext.createAnalyser();
+    this.analyser.fftSize = 256;
+    
+    const source = this.audioContext.createMediaStreamSource(stream);
+    source.connect(this.analyser);
+
+    this.monitorAudioLevel();
+  }
+
+  private monitorAudioLevel(): void {
+    if (!this.analyser) return;
+
+    const bufferLength = this.analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    const updateLevel = () => {
+      this.analyser!.getByteFrequencyData(dataArray);
+      
+      // Ortalama ses seviyesini hesapla
+      const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+      this.currentAudioLevel = average / 255;
+
+      // Adaptive threshold güncelle
+      if (this.config.adaptiveThreshold) {
+        this.updateAdaptiveThreshold(this.currentAudioLevel);
+      }
+
+      requestAnimationFrame(updateLevel);
+    };
+
+    updateLevel();
+  }
+
+  // Adaptive threshold güncelleme
+  private updateAdaptiveThreshold(currentLevel: number): void {
+    this.adaptiveThresholdHistory.push(currentLevel);
+    
+    // Son 100 ölçümü tut
+    if (this.adaptiveThresholdHistory.length > 100) {
+      this.adaptiveThresholdHistory.shift();
+    }
+
+    // Ortalama gürültü seviyesini hesapla
+    const averageNoise = this.adaptiveThresholdHistory
+      .slice(0, 50) // İlk 50 ölçüm (genelde sessizlik)
+      .reduce((a, b) => a + b, 0) / 50;
+
+    // Threshold'u dinamik olarak ayarla
+    const dynamicThreshold = Math.max(
+      averageNoise + 0.1, // Gürültü + buffer
+      this.config.threshold * 0.5 // Minimum threshold
+    );
+
+    this.config.threshold = Math.min(dynamicThreshold, 0.9); // Maksimum 0.9
+  }
+
+  // Mevcut ses seviyesini al
+  getCurrentAudioLevel(): number {
+    return this.currentAudioLevel;
+  }
+
+  // Ses seviyesi çubuklarını al (UI için)
+  getAudioLevelBars(barCount: number = 10): boolean[] {
+    const level = this.currentAudioLevel;
+    const bars: boolean[] = [];
+    
+    for (let i = 0; i < barCount; i++) {
+      const threshold = (i + 1) / barCount;
+      bars.push(level >= threshold);
+    }
+    
+    return bars;
   }
 }
