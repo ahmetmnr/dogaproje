@@ -23,5 +23,23 @@ Implement audio streaming with MediaRecorder API, 100ms chunks, base64 encoding.
 Handle connection drops with 5 retry attempts using exponential backoff.
 
 Always validate user input and implement proper error handling for all API calls.
+CRITICAL FOR CONSISTENCY: Always use these exact OpenAI parameters - temperature: 0.2, seed: 12345, model: "gpt-4o-realtime-preview". Never change these values.
+Use identical system prompts across all sessions. Store prompts in constants file, never hardcode them inline.
 
+For few-shot examples, use exact same 5 examples every time: YARIŞMA_CEVABI, GENEL_SORU, ALAKASIZ, YARIŞMA_KONTROLU categories with identical wording.
+Create these exact 6 tools with identical names and descriptions: advance_question, evaluate_answer, start_competition, end_competition, answer_zero_waste_question, handle_unclear_input.
+
+Use consistent naming: participantId (never userId), questionId (never questionNumber), sessionId (never sessionKey).
+
+All prompts must be in Turkish, no emojis, no icons, same tone and structure every time.
+
+Store all configuration in constants: VAD_THRESHOLD = 0.5, MAX_SILENCE_DURATION = 1500, AUDIO_CHUNK_SIZE = 100.
+
+Use identical error messages and responses. Create error constants file.
+
+Session lifecycle must be identical: QR scan → form → OpenAI session init → competition start → questions loop → end → cleanup.
+
+Redis keys must follow exact pattern: session:{participantId}, score:{participantId}, leaderboard:global.
+
+Audio processing must use same MediaRecorder config every time: mimeType: 'audio/webm;codecs=opus', sampleRate: 16000.
 ---

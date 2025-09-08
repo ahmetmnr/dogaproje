@@ -12,7 +12,6 @@ const openai = new OpenAI({
 // 📚 FEW-SHOT EXAMPLES FOR BETTER PROMPTING
 const MCQ_FEW_SHOT_EXAMPLES = `
 🔤 ÇOKTAN SEÇMELİ SORU ÖRNEKLERİ:
-<<<<<<< HEAD
 
 ÖRNEK 1:
 Soru: Sıfır Atık sisteminde kaç ana kategori var?
@@ -37,162 +36,25 @@ Değerlendirme: 80 puan (yaklaşık ama tam doğru değil)
 `;
 
 const OPEN_ENDED_FEW_SHOT_EXAMPLES = `
-📝 AÇIK UÇLU SORU ÖRNEKLERİ:
-
-ÖRNEK 1:
-Soru: 2024'te geri dönüşüm oranı yüzde kaç?
-Doğru: 36,08
-Kullanıcı: "otuz altı falan"
-Değerlendirme: 90 puan (yaklaşık ifade + doğru rakam)
-
-ÖRNEK 2:
-Soru: Toplam kaç milyon ton atık geri dönüştürüldü?
-Doğru: 59,9 milyon
-Kullanıcı: "altmış milyon civarı"
-Değerlendirme: 95 puan (çok yakın tahmin)
-
-ÖRNEK 3:
-Soru: Kaç kişiye eğitim verildi?
-Doğru: 25 milyon
-Kullanıcı: "yirmi beş milyon kişi"
-Değerlendirme: 100 puan (tam doğru)
-`;
-
-const TURKISH_LANGUAGE_FEW_SHOT_EXAMPLES = `
-🇹🇷 TÜRKÇE DİL ÖZELLİKLERİ:
-
-Belirsizlik ifadeleri = POZITIF:
-- "galiba", "sanırım", "herhalde" + doğru cevap = TAM PUAN
-- "civarı", "falan", "kadar" + yakın sayı = YÜKSEK PUAN
-
-Yakınlık ifadeleri:
-- "otuz altı falan" (36 için) = 90 puan
-- "altmış civarı" (59,9 için) = 95 puan
-- "iki bin on yedi gibi" (2017 için) = 100 puan
-`;
-
-const EDGE_CASE_FEW_SHOT_EXAMPLES = `
-⚠️ ÖZEL DURUMLAR:
-
-Çelişkili cevaplar:
-Kullanıcı: "A dedim ama B doğru"
-→ Düzeltmeyi dikkate al, B'ye göre puanla
-
-Kısmi bilgi:
-Kullanıcı: "altı tane kategori var ama renklerini bilmiyorum"
-→ Bildikleri kısım için puan ver
-
-Çok yakın rakamlar:
-35 vs 36 → 90 puan
-58 vs 59,9 → 95 puan
-2016 vs 2017 → 80 puan
-`;
-
-const CONSISTENCY_CALIBRATION_EXAMPLES = `
-🎯 TUTARLILIK KALİBRASYONU:
-
-Aynı tip sorular için aynı puanlama:
-- "otuz altı" = 100 puan
-- "36" = 100 puan  
-- "otuz altı falan" = 90 puan
-- "otuz beş" = 90 puan
-- "kırk" = 60 puan
-- "yirmi" = 0 puan
-`;
-
-// 🌿 SIFIR ATIK PROJESİ GENEL BİLGİ BANKASI
-const SIFIR_ATIK_BILGI_BANKASI = `
-🌿 SIFIR ATIK PROJESİ GENEL BİLGİ BANKASI:
-=======
->>>>>>> 193d71a (ön yüz değişti)
-
-ÖRNEK 1:
-Soru: Sıfır Atık sisteminde kaç ana kategori var?
-A) 3 kategori B) 4 kategori C) 6 kategori D) 8 kategori
-Doğru: C
-Kullanıcı: "galiba altı tane var"
-Değerlendirme: 100 puan (belirsizlik + doğru bilgi = tam puan)
-
-ÖRNEK 2: 
-Soru: Hangi kutu hangi atık için?
-A) Mavi=plastik B) Sarı=plastik C) Yeşil=plastik D) Kırmızı=plastik
-Doğru: B
-Kullanıcı: "B şıkkı ama aslında sarı kutu plastik için"
-Değerlendirme: 100 puan (düzeltme + doğru şık)
-
-<<<<<<< HEAD
-🎯 HEDEFLER:
-- 2035 yılı hedefi: %60 geri dönüşüm oranı
-- 2053 yılı hedefi: %70 geri dönüşüm oranı
-
-🗂️ ATIK KATEGORİLERİ:
-- Kağıt-Karton (Mavi kutu)
-- Plastik-Metal (Sarı kutu) 
-- Cam (Yeşil kutu)
-- Organik Atık (Kahverengi kutu)
-
-📈 DETAYLI GERİ DÖNÜŞÜM RAKAMLARI:
-- Kağıt-karton: 29,3 milyon ton
-- Plastik: 7,8 milyon ton
-- Cam: 2,9 milyon ton
-- Metal: Milyonlarca ton
-
-🏆 ULUSLARARASI BAŞARILAR:
-- BM Küresel Amaçlar Eylem Ödülü
-- BM Sıfır Atık Yüksek Düzeyli Şahsiyetler Danışma Kurulu Başkanlığı
-- Dünya çapında örnek gösterilen proje
-
-🏢 KURUMSAL YAPILANMA:
-- Sıfır Atık Belge Sistemi: Temel, Orta, İleri Seviye
-- Kamu kurumları, özel sektör, eğitim kurumları dahil
-- Sistematik eğitim ve sertifikasyon programları
-
-🌍 ÇEVRESEL ETKİ:
-- Milyonlarca ağacın kesilmesi önlendi
-- Sera gazı emisyonları azaltıldı
-- Doğal kaynaklar korundu
-- Ekonomiye milyarlarca lira katkı
-
-💡 PRATİK UYGULAMALAR:
-- Evde atık ayrıştırma
-- Renk kodlu kutu sistemi
-- Bilinçli tüketim alışkanlıkları
-- Geri dönüşüm bilinci artırma
-
-🏛️ KURUMSALLAŞMA:
-- Sıfır Atık Vakfı (2023 yılında kuruldu)
-- Sürdürülebilirlik ve kalıcılık amacıyla
-- Gelecek nesillere aktarım hedefi
-=======
-ÖRNEK 3:
-Soru: Proje ne zaman başladı?
-A) 2015 B) 2017 C) 2019 D) 2020
-Doğru: B
-Kullanıcı: "sanırım 2018 civarı"
-Değerlendirme: 80 puan (yaklaşık ama tam doğru değil)
->>>>>>> 193d71a (ön yüz değişti)
-`;
-
-const OPEN_ENDED_FEW_SHOT_EXAMPLES = `
-📝 AÇIK UÇLU SORU ÖRNEKLERİ:
-
-ÖRNEK 1:
-Soru: 2024'te geri dönüşüm oranı yüzde kaç?
-Doğru: 36,08
-Kullanıcı: "otuz altı falan"
-Değerlendirme: 90 puan (yaklaşık ifade + doğru rakam)
-
-ÖRNEK 2:
-Soru: Toplam kaç milyon ton atık geri dönüştürüldü?
-Doğru: 59,9 milyon
-Kullanıcı: "altmış milyon civarı"
-Değerlendirme: 95 puan (çok yakın tahmin)
-
-ÖRNEK 3:
-Soru: Kaç kişiye eğitim verildi?
-Doğru: 25 milyon
-Kullanıcı: "yirmi beş milyon kişi"
-Değerlendirme: 100 puan (tam doğru)
+ACIK UCLU SORU ORNEKLERI:\n
+\n
+ORNEK 1:\n
+Soru: 2024'te geri donusum orani yuzde kac?\n
+Dogru: 36,08\n
+Kullanici: "otuz alti falan"\n
+Degerlendirme: 90 puan (yaklasik ifade + dogru rakam)\n
+\n
+ORNEK 2:\n
+Soru: Toplam kac milyon ton atik geri donusturuldu?\n
+Dogru: 59,9 milyon\n
+Kullanici: "altmis milyon civari"\n
+Degerlendirme: 95 puan (cok yakin tahmin)\n
+\n
+ORNEK 3:\n
+Soru: Kac kisiye egitim verildi?\n
+Dogru: 25 milyon\n
+Kullanici: "yirmi bes milyon kisi"\n
+Degerlendirme: 100 puan (tam dogru)\n
 `;
 
 const TURKISH_LANGUAGE_FEW_SHOT_EXAMPLES = `
@@ -297,6 +159,27 @@ KURUMSALLASMA:\n
 - Gelecek nesillere aktarim hedefi\n
 `;
 
+// HIZLI DEGERLENDIRME FONKSIYONU
+function quickEvaluateAnswer(question: any, userAnswer: string, selectedOption: string | null) {
+  const answer = userAnswer.toLowerCase().trim();
+  
+  if (question.type === 'mcq') {
+    // Çoktan seçmeli için hızlı kontrol
+    const correctOption = question.correctAnswer;
+    if (selectedOption === correctOption || answer.includes(correctOption.toLowerCase())) {
+      return { isCorrect: true, points: 100, confidence: 0.9, explanation: "Doğru seçenek" };
+    }
+    return { isCorrect: false, points: 0, confidence: 0.8, explanation: "Yanlış seçenek" };
+  }
+  
+  // Açık uçlu için basit kontrol
+  if (question.correctAnswer && answer.includes(question.correctAnswer.toString().toLowerCase())) {
+    return { isCorrect: true, points: 100, confidence: 0.8, explanation: "Doğru cevap" };
+  }
+  
+  return { isCorrect: false, points: 0, confidence: 0.5, explanation: "Belirsiz cevap" };
+}
+
 // IKI KATMANLI HIBRIT DEGERLENDIRME SISTEMI
 async function evaluateAnswerWithFullContext(
   question: Question, 
@@ -312,7 +195,7 @@ async function evaluateAnswerWithFullContext(
   reasoning: string;
 }> {
   const startTime = Date.now();
-  console.log(`⏱️ [${startTime}] evaluateAnswerWithFullContext STARTED`);
+  console.log(`[${startTime}] evaluateAnswerWithFullContext STARTED`);
   
   // Soru tipine göre uygun few-shot örnekleri seç
   let specificExamples = '';
@@ -411,14 +294,7 @@ Eğer hem sesli cevap hem seçilen şık varsa, ikisini de dikkate al.
         { role: 'user', content: userPrompt }
       ],
       response_format: { type: "json_object" },
-<<<<<<< HEAD
       max_tokens: 400
-=======
-      max_tokens: 200, // Daha kısa yanıt
-      temperature: 0.1 // Daha tutarlı sonuçlar
-    }, {
-      timeout: 5000 // 5 saniye timeout
->>>>>>> 193d71a (ön yüz değişti)
     });
     
     const apiCallEnd = Date.now();
@@ -430,7 +306,6 @@ Eğer hem sesli cevap hem seçilen şık varsa, ikisini de dikkate al.
     const points = Math.max(0, Math.min(100, result.points || 0));
     const isCorrect = points >= 60; // 60+ puan = doğru
     
-<<<<<<< HEAD
     console.log(`🤖 Gelişmiş Değerlendirme:`);
     console.log(`📝 Question ${currentQuestionIndex + 1}: "${question.question}"`);
     console.log(`👤 User Answer: "${userAnswer}"`);
@@ -438,15 +313,6 @@ Eğer hem sesli cevap hem seçilen şık varsa, ikisini de dikkate al.
     console.log(`🎯 Result: ${isCorrect ? 'CORRECT' : 'INCORRECT'} (${points}/100 puan)`);
     console.log(`💡 Explanation: ${result.explanation}`);
     console.log(`🧠 Reasoning: ${result.reasoning}`);
-=======
-    console.log(`Gelismis Degerlendirme:`);
-    console.log(`Question ${currentQuestionIndex + 1}: "${question.question}"`);
-    console.log(`User Answer: "${userAnswer}"`);
-    console.log(`Selected Option: "${selectedOption || 'None'}"`);
-    console.log(`Result: ${isCorrect ? 'CORRECT' : 'INCORRECT'} (${points}/100 puan)`);
-    console.log(`Explanation: ${result.explanation}`);
-    console.log(`Reasoning: ${result.reasoning}`);
->>>>>>> 193d71a (ön yüz değişti)
     
     const endTime = Date.now();
     console.log(`[${endTime}] evaluateAnswerWithFullContext COMPLETED (${endTime - startTime}ms total)`);
@@ -464,150 +330,11 @@ Eğer hem sesli cevap hem seçilen şık varsa, ikisini de dikkate al.
     const errorTime = Date.now();
     console.error(`❌ [${errorTime}] Full context evaluation failed (${errorTime - startTime}ms):`, error);
     
-<<<<<<< HEAD
     // Değerlendirme başarısız oldu - kullanıcıdan tekrar cevap istenecek
-=======
-    // Detaylı hata logu
-    if (error instanceof Error) {
-      console.error(`Error name: ${error.name}`);
-      console.error(`Error message: ${error.message}`);
-      console.error(`Error stack: ${error.stack}`);
-    }
-    
-    // API key kontrolü
-    if (error instanceof Error && error.message.includes('401')) {
-      console.error(`🔑 OpenAI API Key hatası!`);
-    }
-    
-    // Timeout kontrolü
-    if (error instanceof Error && (error.message.includes('timeout') || error.message.includes('ECONNRESET'))) {
-      console.error(`⏰ Network/Timeout hatası!`);
-    }
-    
->>>>>>> 193d71a (ön yüz değişti)
     throw new Error(`LLM değerlendirmesi başarısız oldu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`);
   }
 }
 
-<<<<<<< HEAD
-=======
-
-// ⚡ GELİŞMİŞ HIZLI DEĞERLENDİRME FONKSİYONU
-function quickEvaluateAnswer(question: Question, userAnswer: string, selectedOption: string | null): {
-  isCorrect: boolean;
-  points: number;
-  explanation: string;
-  confidence: number;
-} {
-  const normalizedAnswer = userAnswer.toLowerCase().trim();
-  
-  // 1. MCQ için gelişmiş kontrol
-  if (question.type === 'mcq') {
-    const correctOption = question.correct?.toLowerCase();
-    
-    // Seçenek harfi kontrolü
-    if (selectedOption) {
-      const userOption = selectedOption.toLowerCase();
-      if (userOption === correctOption) {
-        return {
-          isCorrect: true,
-          points: 100,
-          explanation: "Doğru seçenek seçildi!",
-          confidence: 0.95
-        };
-      }
-    }
-    
-    // Metin içinde seçenek arama
-    const optionPatterns = [
-      new RegExp(`\\b${correctOption}\\b`, 'i'),
-      new RegExp(`${correctOption}\\s*(şık|seçenek|şıkkı)`, 'i'),
-      new RegExp(`(şık|seçenek)\\s*${correctOption}`, 'i')
-    ];
-    
-    for (const pattern of optionPatterns) {
-      if (pattern.test(normalizedAnswer)) {
-        return {
-          isCorrect: true,
-          points: 100,
-          explanation: "Doğru seçenek metinde bulundu!",
-          confidence: 0.9
-        };
-      }
-    }
-  }
-  
-  // 2. Açık uçlu için gelişmiş keyword matching
-  if (question.openEval?.keywordsAny) {
-    const keywords = question.openEval.keywordsAny;
-    let matchCount = 0;
-    let matchedKeywords: string[] = [];
-    
-    for (const keyword of keywords) {
-      if (normalizedAnswer.includes(keyword.toLowerCase())) {
-        matchCount++;
-        matchedKeywords.push(keyword);
-      }
-    }
-    
-    if (matchCount > 0) {
-      const points = Math.min(100, (matchCount / keywords.length) * 100 + 20); // Bonus puan
-      return {
-        isCorrect: points >= 60,
-        points: Math.round(points),
-        explanation: `Bulunan kelimeler: ${matchedKeywords.join(', ')}`,
-        confidence: 0.85
-      };
-    }
-  }
-  
-  // 3. Sayısal cevaplar için gelişmiş analiz
-  const numbers = normalizedAnswer.match(/\d+/g);
-  if (numbers && question.correct) {
-    const userNum = parseInt(numbers[0]);
-    const correctNum = parseInt(question.correct);
-    
-    const difference = Math.abs(userNum - correctNum);
-    
-    if (difference <= 5) {
-      let accuracy = 100;
-      if (difference === 0) accuracy = 100;
-      else if (difference <= 1) accuracy = 95;
-      else if (difference <= 2) accuracy = 85;
-      else if (difference <= 3) accuracy = 75;
-      else if (difference <= 5) accuracy = 65;
-      
-      return {
-        isCorrect: accuracy >= 60,
-        points: accuracy,
-        explanation: `Sayısal yakınlık: ${userNum} (doğru: ${correctNum})`,
-        confidence: 0.9
-      };
-    }
-  }
-  
-  // 4. Genel metin analizi (son şans)
-  const commonWords = ['evet', 'hayır', 'doğru', 'yanlış', 'var', 'yok'];
-  const hasCommonWords = commonWords.some(word => normalizedAnswer.includes(word));
-  
-  if (hasCommonWords && normalizedAnswer.length > 3) {
-    return {
-      isCorrect: false,
-      points: 25, // Az da olsa puan ver
-      explanation: "Genel cevap tespit edildi",
-      confidence: 0.4
-    };
-  }
-  
-  // 5. Hiçbir şey bulunamadı
-  return {
-    isCorrect: false,
-    points: normalizedAnswer.length > 5 ? 10 : 0, // Uzun cevap için 10 puan
-    explanation: normalizedAnswer.length > 5 ? "Cevap girişimi tespit edildi" : "Cevap bulunamadı",
-    confidence: 0.2
-  };
-}
->>>>>>> 193d71a (ön yüz değişti)
 
 // 🧠 GELİŞMİŞ INTENT ANALİZİ FONKSİYONU
 function analyzeUserIntent(text: string): {
@@ -1308,14 +1035,7 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
   console.log(`📝 Questions data length: ${state.questionsData?.length || 'undefined'}`);
   
   try {
-<<<<<<< HEAD
     const currentQuestion = state.questionsData[state.currentQuestionIndex];
-=======
-    console.log(`🔍 Checking currentQuestion...`);
-    const currentQuestion = state.questionsData[state.currentQuestionIndex];
-    console.log(`📋 Current question:`, currentQuestion ? 'EXISTS' : 'NULL/UNDEFINED');
-    
->>>>>>> 193d71a (ön yüz değişti)
     if (!currentQuestion) {
       console.log(`❌ NO CURRENT QUESTION - Index: ${state.currentQuestionIndex}, Array length: ${state.questionsData?.length}`);
       return {
@@ -1324,20 +1044,9 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
       };
     }
     
-<<<<<<< HEAD
     // Transcript ve selectedOption parametrelerini al
     const transcript = parameters.transcript || parameters.userAnswer || '';
     const selectedOption = parameters.selectedOption || null;
-=======
-    console.log(`✅ Current question found: ${currentQuestion.question?.substring(0, 50)}...`);
-    
-    // Transcript ve selectedOption parametrelerini al
-    const transcript = parameters.transcript || parameters.userAnswer || '';
-    const selectedOption = parameters.selectedOption || null;
-    
-    console.log(`🎤 Transcript: "${transcript}" (length: ${transcript.length})`);
-    console.log(`🔤 Selected option: "${selectedOption}"`);
->>>>>>> 193d71a (ön yüz değişti)
     
     // Eğer transcript boş veya çok kısa ise, değerlendirme yapma
     if (!transcript || transcript.trim().length < 2) {
@@ -1348,11 +1057,6 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
       };
     }
     
-<<<<<<< HEAD
-=======
-    console.log(`✅ Transcript validation passed`);
-    
->>>>>>> 193d71a (ön yüz değişti)
     // Soru zaten cevaplanmış mı kontrol et
     if (currentQuestion.isAnswered) {
       return {
@@ -1396,12 +1100,7 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
     
     console.log(`🎯 Grading answer: "${transcript}" for question:`, currentQuestion.id);
     
-<<<<<<< HEAD
     // Hibrit değerlendirme sistemi
-=======
-    // ⚡ HİBRİT DEĞERLENDIRME: Önce Hızlı, Gerekirse AI
-    
->>>>>>> 193d71a (ön yüz değişti)
     const evaluationStart = Date.now();
     console.log(`⏱️ [${evaluationStart}] Hybrid Evaluation STARTED`);
     console.log(`🧠 Question: "${currentQuestion.question}", User: "${transcript}"`);
@@ -1425,75 +1124,46 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
         reasoning: "Quick evaluation - high confidence"
       };
       
-      console.log(`✅ Using quick evaluation result (${Date.now() - evaluationStart}ms)`);
+      console.log(`Using quick evaluation result (${Date.now() - evaluationStart}ms)`);
     } else {
       // 3. AI değerlendirme - TIMEOUT KORUMASLI
-      console.log(`🤖 Low confidence, using AI evaluation with timeout protection...`);
-      
-      const aiPromise = evaluateAnswerWithFullContext(
-        currentQuestion, 
-        transcript,
-        selectedOption,
-        state.currentQuestionIndex
-      );
-      
-<<<<<<< HEAD
-      const evaluationEnd = Date.now();
-      console.log(`⏱️ [${evaluationEnd}] AI Evaluation COMPLETED (${evaluationEnd - evaluationStart}ms)`);
-      console.log(`🎯 Hibrit Evaluation Result: ${evaluation.isCorrect ? 'CORRECT' : 'INCORRECT'} (${evaluation.points}/100 puan)`);
-    } catch (error) {
-      const errorEnd = Date.now();
-      console.error(`❌ [${errorEnd}] LLM evaluation failed (${errorEnd - evaluationStart}ms):`, error);
-      
-      // LLM değerlendirmesi başarısız - kullanıcıdan cevabı tekrar istemek
-      return {
-        success: false,
-        message: "Cevabınız değerlendirilemedi. Lütfen cevabınızı tekrar söyleyin.",
-        needsRetry: true
-      };
-=======
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('AI evaluation timeout')), 3000); // 3 saniye
-      });
-      
       try {
-        evaluation = await Promise.race([aiPromise, timeoutPromise]);
-        console.log(`🎯 AI Evaluation completed (${Date.now() - evaluationStart}ms)`);
-      } catch (error) {
-        console.error(`❌ AI evaluation failed/timeout, using quick result:`, error);
+        console.log(`Low confidence, using AI evaluation with timeout protection...`);
         
-        // AI başarısız/timeout olursa hızlı sonucu kullan
-        evaluation = {
-          isCorrect: quickResult.isCorrect,
-          points: Math.max(quickResult.points, 50), // En az 50 puan ver
-          explanation: quickResult.explanation + " (AI timeout, hızlı değerlendirme kullanıldı)",
-          contextualInfo: currentQuestion.miniCorpus || "",
-          confidence: 0.7,
-          reasoning: "Fallback to quick evaluation due to AI timeout"
+        evaluation = await evaluateAnswerWithFullContext(
+          currentQuestion, 
+          transcript,
+          selectedOption,
+          state.currentQuestionIndex
+        );
+        
+        const evaluationEnd = Date.now();
+        console.log(`[${evaluationEnd}] AI Evaluation COMPLETED (${evaluationEnd - evaluationStart}ms)`);
+        console.log(`Hibrit Evaluation Result: ${evaluation.isCorrect ? 'CORRECT' : 'INCORRECT'} (${evaluation.points}/100 puan)`);
+      } catch (error) {
+      const errorEnd = Date.now();
+      console.error(`[${errorEnd}] LLM evaluation failed (${errorEnd - evaluationStart}ms):`, error);
+      
+        // LLM değerlendirmesi başarısız - kullanıcıdan cevabı tekrar istemek
+        return {
+          success: false,
+          message: "Cevabınız değerlendirilemedi. Lütfen cevabınızı tekrar söyleyin.",
+          needsRetry: true
         };
       }
->>>>>>> 193d71a (ön yüz değişti)
     }
     
     
     // Kısmi puan hesaplama sistemi
     const maxPoints = currentQuestion.points;
-<<<<<<< HEAD
     const earnedPoints = Math.round((evaluation.points / 100) * maxPoints);
-=======
-    const earnedPoints = Math.round(((evaluation as any).points / 100) * maxPoints);
->>>>>>> 193d71a (ön yüz değişti)
     state.totalScore += earnedPoints;
     
     // Cevabı kaydet (genişletilmiş) - Backward compatibility için
     state.answers.push({
       questionId: currentQuestion.id,
       answer: transcript,
-<<<<<<< HEAD
       correct: evaluation.isCorrect,
-=======
-      correct: (evaluation as any).isCorrect,
->>>>>>> 193d71a (ön yüz değişti)
       points: earnedPoints,
       maxPoints: maxPoints,
       percentage: (evaluation as any).points
@@ -1507,7 +1177,6 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
     currentQuestion.attemptCount++;
     currentQuestion.lastAttemptTime = new Date().toISOString();
     
-<<<<<<< HEAD
     // Güncellenmiş soruları dosyaya kaydet
     try {
       const questionsPath = path.join(process.cwd(), 'data', 'questions.json');
@@ -1518,12 +1187,6 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
     }
     
     console.log(`📊 Answer graded: ${evaluation.isCorrect ? 'CORRECT' : 'PARTIAL/INCORRECT'}, Points: ${earnedPoints}/${maxPoints} (${evaluation.points}%), Total: ${state.totalScore}`);
-=======
-    // ✅ SADECE RAM'DE GÜNCELLE - Dosyaya yazma!
-    console.log(`💾 Question ${currentQuestion.id} updated IN MEMORY: isAnswered=true, userAnswer="${transcript}", userScore=${earnedPoints}, attemptCount=${currentQuestion.attemptCount}`);
-    
-    console.log(`📊 Answer graded: ${(evaluation as any).isCorrect ? 'CORRECT' : 'PARTIAL/INCORRECT'}, Points: ${earnedPoints}/${maxPoints} (${(evaluation as any).points}%), Total: ${state.totalScore}`);
->>>>>>> 193d71a (ön yüz değişti)
     
     // Açıklama: miniCorpus + AI contextual info + hibrit explanation
     const fullExplanation = currentQuestion.miniCorpus + 
@@ -1535,7 +1198,6 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
     
     return {
       success: true,
-<<<<<<< HEAD
       correct: evaluation.isCorrect,
       points: earnedPoints,
       maxPoints: maxPoints,
@@ -1546,18 +1208,6 @@ async function handleGradeAnswer(state: GameState, parameters: any): Promise<Too
       message: `Cevap değerlendirildi: ${evaluation.isCorrect ? 'Doğru' : 'Kısmi/Yanlış'} (${evaluation.points}/100)`,
       confidence: evaluation.confidence,
       reasoning: evaluation.reasoning,
-=======
-      correct: (evaluation as any).isCorrect,
-      points: earnedPoints,
-      maxPoints: maxPoints,
-      percentage: (evaluation as any).points,
-      score: state.totalScore,
-      explanation: fullExplanation,
-      questionIndex: state.currentQuestionIndex,
-      message: `Cevap değerlendirildi: ${(evaluation as any).isCorrect ? 'Doğru' : 'Kısmi/Yanlış'} (${(evaluation as any).points}/100)`,
-      confidence: (evaluation as any).confidence,
-      reasoning: (evaluation as any).reasoning,
->>>>>>> 193d71a (ön yüz değişti)
       questionNowAnswered: true
     };
     
