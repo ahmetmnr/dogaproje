@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { REALTIME_CONFIG } from '@/lib/constants';
+import { MAIN_SYSTEM_PROMPT, ZERO_WASTE_INFO, INTENT_ANALYSIS_EXAMPLES } from '@/lib/prompts';
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,128 +36,22 @@ export async function POST(req: NextRequest) {
         'OpenAI-Beta': 'realtime=v1'
       },
       body: JSON.stringify({
-        model: 'gpt-4o-realtime-preview-2025-06-03',
-        voice: 'alloy',
-        instructions: `Sen DOGA'sin - Dogal Olusum Geri donusum Asistani.\n
-\n
-KRITIK KURAL: KULLANICI INTENT'INI DOGRU TESPIT ET!\n
-\n
-YARISHMA CEVABI (grade_answer cagir):\n
-- SADECE DOGRUDAN CEVAPLAR: "36", "B sikki", "dort kategori"\n
-- Belirsizlik + cevap: "sanirim 36", "galiba B"\n
-- Sayisal degerler: "otuz alti", "yuzde 36"\n
-\n
-SERBEST SORU (answer_user_question cagir):\n
-- Soru kelimeleri: "nedir", "nasil", "kim", "nerede", "kac", "hangi"\n
-- Soru cumleleri: "Ne gibi basarilar?", "Kim yurutuyor?"\n
-- Bilgi isteme: "anlat", "acikla", "bilgi ver"\n
-- Soru isareti ile biten cumleler\n
-\n
-SOHBET (direkt cevapla, tool cagirma):\n
-- Tesekkur: "tesekkurler", "sagol"\n
-- Yorum: "guzel proje", "harika"\n
-- Onay: "tamam", "anladim", "peki"\n
-\n
-ASLA grade_answer CAGIRMA:\n
-- Soru sorarken: "Ne gibi basarilar elde ettiniz?"\n
-- Sikayet ederken: "Neden saydik?", "Sistem fark etmiyor"\n
-- Meta konusma: "Soruya cevap vermedim", "Bir sonraki soru"\n
-- Yabanci dil: Turkce olmayan her sey\n
-\n
-TOOL SECIMI KURALLARI:\n
-1. Kullanici SORU soruyor mu? -> answer_user_question\n
-2. Kullanici CEVAP veriyor mu? -> grade_answer\n
-3. Kullanici SOHBET ediyor mu? -> direkt cevapla\n
-4. Emin degilsen -> direkt cevapla\n
-\n
-UNUTMA: Kullanicinin NE YAPMAK ISTEDIGINI anla, sonra tool sec!\n
-\n
-SIFIR ATIK PROJESI GENEL BILGI BANKASI:\n
-\n
-TARIHCE:\n
-- 2017 yilinda baslatildi\n
-- Emine Erdogan Hanimefendi himayesinde\n
-- Turkiye Cumhuriyeti Cumhurbaskanligi onculugunde\n
-\n
-BASARI RAKAMLARI:\n
-- Geri donusum orani: 2017'de %13 -> 2024'te %36,08\n
-- Toplam geri donusturulen atik: 59,9 milyon ton\n
-- Egitim alan kisi sayisi: 25 milyon\n
-- Sistem kurulan bina sayisi: 205 bin\n
-- Dahil olan belediye sayisi: 450+\n
-\n
-HEDEFLER:\n
-- 2035 yili hedefi: %60 geri donusum orani\n
-- 2053 yili hedefi: %70 geri donusum orani\n
-\n
-ATIK KATEGORILERI:\n
-- Kagit-Karton (Mavi kutu)\n
-- Plastik-Metal (Sari kutu)\n
-- Cam (Beyaz kutu)\n
-- Organik Atik (Kahverengi kutu)\n
-\n
-ULUSLARARASI BASARILAR:\n
-- BM Kuresel Amaclar Eylem Odulu\n
-- BM Sifir Atik Yuksek Duzeylli Sahsiyetler Danisma Kurulu Baskanligi\n
-- Dunya capinda ornek gosterilen proje\n
-\n
-KURUMSALLASMA:\n
-- Sifir Atik Vakfi (2023 yilinda kuruldu)\n
-- Surdurulebilirlik ve kalicilik amaciyla\n
-- Gelecek nesillere aktarim hedefi\n
-\n
-KISILIGININ:\n
-- Sicak, samimi ve enerjik TV yarismasi sunucusu\n
-- Cevre konusunda tutkulu ama eglenceli\n
-- Turkiye'nin basarilariyla gurur duyan\n
-- Katilimcilarla dogal sohbet eden\n
-\n
-KULLANICI MESAJI TESPITI VE YANIT STRATEJISI:\n
-\n
-YARISHMA CEVABI (grade_answer cagir):\n
-- Sayisal cevaplar: "36", "otuz alti", "yuzde 36"\n
-- Harf secenekleri: "A", "B sikki", "C secenegi"\n
-- Secenek icerikleri: "dort kategori", "temel orta ileri"\n
-\n
-SERBEST SORU (answer_user_question cagir):\n
-- Soru kelimeleri: "nedir", "nasil", "ne zaman", "kim", "nerede", "kac"\n
-- Soru cumleleri: "Sifir Atik nedir?", "Evde ne yapabilirim?"\n
-- Bilgi isteme: "anlat", "acikla", "bilgi ver", "ogren"\n
-- Merak cumleleri: "merak ediyorum", "bilmek istiyorum"\n
-\n
-SOHBET/YORUM (direkt cevapla, tool cagirma):\n
-- Genel yorumlar: "guzel proje", "harika", "tesekkurler"\n
-- Duygusal ifadeler: "cok begendim", "mukemmel", "super"\n
-- Kisa onaylar: "tamam", "anladim", "evet", "peki"\n
-\n
-YARISHMA AKISI:\n
-1. start_quiz -> Tanitim yap -> get_question cagir\n
-2. get_question -> Soruyu oku -> Cevap bekle\n
-3. Cevap gelince -> grade_answer -> Sonuc acikla -> next_question\n
-4. Serbest soru gelince -> answer_user_question -> Cevapla -> Yarismaya don\n
-\n
-SOHBET STRATEJILERI:\n
-- Sifir Atik hakkinda SORU soruldugunda -> answer_user_question cagir\n
-- Yarisma CEVABI verildiginde -> grade_answer cagir\n
-- Genel SOHBET icin -> Direkt cevapla, bilgi bankasini kullan\n
-- Her zaman sicak ve samimi ol\n
-- Turkiye'nin basarilarini vurgula\n
-- "Siz de..." diyerek kisisellestirir\n
-\n
-ORNEKLER:\n
-"Sifir Atik nedir?" -> answer_user_question cagir\n
-"36 yuzde" -> grade_answer cagir\n
-"cok guzel proje" -> "Tesekkurler! Gercekten gurur verici bir basari hikayesi..."\n
-"Evde ne yapabilirim?" -> answer_user_question cagir\n
-"B sikki" -> grade_answer cagir\n
-\n
-UNUTMA: Kullanici mesajini dogru kategorize et ve uygun tool'u cagir!`,
+        model: REALTIME_CONFIG.model,
+        temperature: REALTIME_CONFIG.temperature,
+        seed: REALTIME_CONFIG.seed,
+        max_response_output_tokens: REALTIME_CONFIG.max_response_output_tokens,
+        voice: REALTIME_CONFIG.voice,
+        instructions: `${MAIN_SYSTEM_PROMPT}
+
+${INTENT_ANALYSIS_EXAMPLES}
+
+${ZERO_WASTE_INFO}`,
 
         tools: [
           {
             type: "function",
             name: "start_quiz",
-            description: "Yarışmayı başlat, tanıtım yap ve ilk soruya geç",
+            description: "Kullanıcı kayıt formunu tamamladıktan sonra yarışmayı başlatır. Hoş geldin mesajı verir, yarışma kurallarını açıklar ve ilk soruyu sunar. Sadece form tamamlandığında ve yarışma henüz başlamamışken kullanılır. Kullanıcı bilgilerini parametre olarak alır.",
             parameters: {
               type: "object",
               properties: {
@@ -170,7 +66,7 @@ UNUTMA: Kullanici mesajini dogru kategorize et ve uygun tool'u cagir!`,
           {
             type: "function",
             name: "get_question",
-            description: "Aktif soruyu al ve kullanıcıya oku",
+            description: "Aktif soruyu alır ve kullanıcıya sesli olarak okur. Soru metnini, soru tipini (açık uçlu/çoktan seçmeli) ve soru numarasını belirtir. Çoktan seçmeli sorularda seçenekleri de okur. Sadece yeni bir soru okunması gerektiğinde kullanılır.",
             parameters: {
               type: "object",
               properties: {},
@@ -180,7 +76,7 @@ UNUTMA: Kullanici mesajini dogru kategorize et ve uygun tool'u cagir!`,
           {
             type: "function",
             name: "grade_answer",
-            description: "Kullanıcının cevabını değerlendir ve puanla",
+            description: "Kullanıcının yarışma sorusuna verdiği cevabı değerlendirir ve puanlar. Doğru/yanlış kontrolü yapar, puan hesaplar ve açıklama verir. Sadece kullanıcı bir yarışma sorusuna cevap verdiğinde kullanılır. Serbest sorular için kullanılmaz.",
             parameters: {
               type: "object",
               properties: {
@@ -195,7 +91,7 @@ UNUTMA: Kullanici mesajini dogru kategorize et ve uygun tool'u cagir!`,
           {
             type: "function",
             name: "next_question",
-            description: "Sıradaki soruya geç veya yarışmayı bitir",
+            description: "Mevcut soru cevaplandıktan sonra sıradaki soruya geçer veya tüm sorular bittiyse yarışmayı sonlandırır. Soru indeksini artırır ve yeni soruyu okur. Sadece bir soru tamamlandıktan sonra kullanılır.",
             parameters: {
               type: "object",
               properties: {},
@@ -205,7 +101,7 @@ UNUTMA: Kullanici mesajini dogru kategorize et ve uygun tool'u cagir!`,
           {
             type: "function",
             name: "answer_user_question",
-            description: "Kullanıcının serbest sorusunu cevapla",
+            description: "Kullanıcının Sıfır Atık projesi hakkında sorduğu genel bilgi sorularını yanıtlar. Yarışma sorusu olmayan, eğitim amaçlı sorular için kullanılır. Yarışma akışını durdurmaz, cevaptan sonra yarışmaya devam eder. Bilgi bankasından yararlanarak detaylı açıklama yapar.",
             parameters: {
               type: "object",
               properties: {
@@ -220,7 +116,7 @@ UNUTMA: Kullanici mesajini dogru kategorize et ve uygun tool'u cagir!`,
           {
             type: "function",
             name: "end_quiz",
-            description: "Yarışmayı bitir ve final skorunu açıkla",
+            description: "Yarışmayı sonlandırır ve final skorunu açıklar. Toplam puanı, doğru cevap sayısını, başarı oranını bildirir ve performans değerlendirmesi yapar. Sadece tüm sorular tamamlandığında veya kullanıcı yarışmayı bırakmak istediğinde kullanılır.",
             parameters: {
               type: "object",
               properties: {},
@@ -232,17 +128,13 @@ UNUTMA: Kullanici mesajini dogru kategorize et ve uygun tool'u cagir!`,
         // Ses ayarları - Gürültülü ortam için optimize edildi
         turn_detection: {
           type: "server_vad",
-          threshold: 0.8,           // Çok daha yüksek eşik - gürültülü ortam için
+          threshold: 0.5,           // Çok daha yüksek eşik - gürültülü ortam için
           prefix_padding_ms: 500,   // Daha uzun padding
           silence_duration_ms: 1500, // Daha uzun sessizlik - yanlışlıkla kesmesin
           idle_timeout_ms: 10000,   // 10 saniye idle timeout
           create_response: true,
           interrupt_response: false  // Kesmeyi zorlaştır
         },
-        
-        // Yanıt ayarları
-        max_response_output_tokens: 4096,
-        temperature: 0.7,
         
         // Audio format
         input_audio_format: "pcm16",

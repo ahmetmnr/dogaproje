@@ -2,44 +2,55 @@
 description:
 globs:
 alwaysApply: true
-Use TypeScript for all files. Never use any type, always define proper interfaces.
+CRITICAL CONSISTENCY RULES - NEVER CHANGE THESE:
 
-Use React + TypeScript + Tailwind CSS for frontend. Node.js + Express + Socket.IO for backend.
+OpenAI Realtime API parameters MUST always be:
+- model: "gpt-4o-realtime-preview" (exact string)
+- temperature: 0.2 (exact number)
+- seed: 12345 (exact number)
+- voice: "alloy" (exact string)
 
-For OpenAI Realtime API always use: temperature: 0.2, seed: 12345, model: "gpt-4o-realtime-preview" for consistency.
+System prompts MUST be stored in lib/prompts.ts constants file. Never hardcode prompts inline.
 
-Implement Voice Activity Detection with configurable parameters: threshold, minSpeechDuration, maxSilenceDuration.
+Tool descriptions MUST be detailed and in Turkish. Each tool description must explain: when to use, what parameters mean, expected behavior.
 
-Create these exact tools for OpenAI function calling: advance_question, evaluate_answer, start_competition, end_competition, answer_zero_waste_question, handle_unclear_input. Each tool must have detailed Turkish descriptions.
+VAD configuration MUST be user-adjustable with these exact parameter names:
+- threshold (0.1-1.0)
+- minSpeechDuration (100-1000ms)
+- maxSilenceDuration (500-3000ms)
+- preSpeechPadding (50-500ms)
+- postSpeechPadding (100-1000ms)
 
-Never use emojis or icons in prompts. Keep prompts clean, professional, and in Turkish only.
+All constants MUST be defined in lib/constants.ts file:
+- REALTIME_CONFIG object
+- VAD_DEFAULTS object
+- AUDIO_CONSTRAINTS object
+- SESSION_TIMEOUTS object
 
-Use WebSocket for client-backend communication and OpenAI Realtime API WebSocket for backend-OpenAI communication.
+Session management MUST use Redis with exact key patterns:
+- session:{participantId}
+- score:{participantId}
+- leaderboard:global
+- questions:current
 
-Store session data in Redis with pattern: session:{participantId}. Support max 100 concurrent sessions.
+Error messages MUST be consistent and stored in constants. Never hardcode error strings.
 
-Implement audio streaming with MediaRecorder API, 100ms chunks, base64 encoding.
+Component naming MUST follow: ModernComponentName.tsx pattern.
 
-Handle connection drops with 5 retry attempts using exponential backoff.
+TypeScript interfaces MUST be defined in types/ directory with proper exports.
 
-Always validate user input and implement proper error handling for all API calls.
-CRITICAL FOR CONSISTENCY: Always use these exact OpenAI parameters - temperature: 0.2, seed: 12345, model: "gpt-4o-realtime-preview". Never change these values.
-Use identical system prompts across all sessions. Store prompts in constants file, never hardcode them inline.
+Audio processing MUST use MediaRecorder with exact config:
+- mimeType: 'audio/webm;codecs=opus'
+- sampleRate: 16000
+- channelCount: 1
 
-For few-shot examples, use exact same 5 examples every time: YARIŞMA_CEVABI, GENEL_SORU, ALAKASIZ, YARIŞMA_KONTROLU categories with identical wording.
-Create these exact 6 tools with identical names and descriptions: advance_question, evaluate_answer, start_competition, end_competition, answer_zero_waste_question, handle_unclear_input.
+WebSocket events MUST follow exact naming: onConnectionStateChange, onDataChannelOpen, onEventReceived.
 
-Use consistent naming: participantId (never userId), questionId (never questionNumber), sessionId (never sessionKey).
+Never use any type. Always define proper interfaces with required/optional properties.
 
-All prompts must be in Turkish, no emojis, no icons, same tone and structure every time.
+All async functions MUST have proper error handling with try-catch blocks.
 
-Store all configuration in constants: VAD_THRESHOLD = 0.5, MAX_SILENCE_DURATION = 1500, AUDIO_CHUNK_SIZE = 100.
+State updates MUST be immutable using proper React patterns.
 
-Use identical error messages and responses. Create error constants file.
-
-Session lifecycle must be identical: QR scan → form → OpenAI session init → competition start → questions loop → end → cleanup.
-
-Redis keys must follow exact pattern: session:{participantId}, score:{participantId}, leaderboard:global.
-
-Audio processing must use same MediaRecorder config every time: mimeType: 'audio/webm;codecs=opus', sampleRate: 16000.
+File structure MUST follow: components/, lib/, types/, app/api/ organization.
 ---
