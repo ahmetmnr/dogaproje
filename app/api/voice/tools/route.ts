@@ -9,6 +9,144 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// TOOL TIMEOUT CONFIGURATION
+const TOOL_TIMEOUTS = {
+  grade_answer: 3000,     // 3 saniye
+  answer_user_question: 2000,  // 2 saniye
+  get_question: 1000,     // 1 saniye
+  start_quiz: 2000,       // 2 saniye
+  next_question: 1000,    // 1 saniye
+  end_quiz: 1000,         // 1 saniye
+};
+
+// Timeout handler
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, toolName: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error(`${toolName} timeout after ${timeoutMs}ms`)), timeoutMs)
+    )
+  ]);
+}
+
+// Sanity Check Manager - AI kararlarını doğrular
+class SanityCheckManager {
+  
+  static validateToolCall(
+    tool: string, 
+    params: any, 
+    gameState: any
+  ): { valid: boolean; override?: string | null; message?: string; reason?: string } {
+    
+    console.log('🛡️ Sanity check started:', { tool, gameState: gameState?.status });
+    
+    // 1. GAME STATE VALIDATION
+    if (tool === 'grade_answer' && !gameState?.hasActiveQuestion) {
+      return {
+        valid: false,
+        override: 'get_question',
+        message: 'Önce bir soru sormalıyım. Hazır mısın?',
+        reason: 'No active question for grading'
+      };
+    }
+    
+    if (tool === 'grade_answer' && gameState?.currentQuestion?.isAnswered) {
+      return {
+        valid: false,
+        override: 'next_question',
+        message: 'Bu soruya zaten cevap verdin. Sıradaki soruya geçelim.',
+        reason: 'Question already answered'
+      };
+    }
+    
+    if (tool === 'next_question' && !gameState?.quizStarted) {
+      return {
+        valid: false,
+        override: 'start_quiz',
+        message: 'Önce yarışmayı başlatmalıyım.',
+        reason: 'Quiz not started'
+      };
+    }
+    
+    // 2. PARAMETER VALIDATION
+    if (tool === 'grade_answer' && !params?.transcript?.trim()) {
+      return {
+        valid: false,
+        override: null,
+        message: 'Cevabını duyamadım, tekrar söyler misin?',
+        reason: 'Empty transcript'
+      };
+    }
+    
+    if (tool === 'answer_user_question' && !params?.question?.trim()) {
+      return {
+        valid: false,
+        override: null,
+        message: 'Sorunuzu anlayamadım, tekrar sorar mısınız?',
+        reason: 'Empty question'
+      };
+    }
+    
+    // 3. CONTENT VALIDATION
+    if (tool === 'answer_user_question' && this.isObviousAnswer(params?.question)) {
+      return {
+        valid: false,
+        override: 'grade_answer',
+        message: 'Bu bir cevap gibi görünüyor, değerlendireyim.',
+        reason: 'Question looks like an answer'
+      };
+    }
+    
+    if (tool === 'grade_answer' && this.isObviousQuestion(params?.transcript)) {
+      return {
+        valid: false,
+        override: 'answer_user_question',
+        message: 'Bu bir soru gibi görünüyor, cevaplayım.',
+        reason: 'Answer looks like a question'
+      };
+    }
+    
+    // 4. SEQUENCE VALIDATION
+    if (tool === 'start_quiz' && gameState?.quizStarted) {
+      return {
+        valid: false,
+        override: 'get_question',
+        message: 'Yarışma zaten başladı. Devam edelim.',
+        reason: 'Quiz already started'
+      };
+    }
+    
+    console.log('✅ Sanity check passed');
+    return { valid: true };
+  }
+  
+  private static isObviousAnswer(text: string): boolean {
+    if (!text) return false;
+    
+    const answerPatterns = [
+      /^\s*[A-D]\s*(şık|şıkkı)?\s*$/i,           // "B şıkkı"
+      /^\s*\d+\s*$/,                             // "36"
+      /^\s*(evet|hayır|doğru|yanlış)\s*$/i,      // "evet"
+      /^\s*\d+\s*(milyon|bin|yüzde|%)\s*$/i,     // "193 bin"
+      /^\s*(mavi|sarı|yeşil|kırmızı|beyaz|kahverengi)\s*$/i // renkler
+    ];
+    
+    return answerPatterns.some(pattern => pattern.test(text.trim()));
+  }
+  
+  private static isObviousQuestion(text: string): boolean {
+    if (!text) return false;
+    
+    const questionPatterns = [
+      /\?$/,                                     // "?" ile biten
+      /^(ne|nasıl|kim|nerede|neden|niçin|kaç|hangi)\b/i, // soru kelimeleri
+      /\b(nedir|nasıl|anlatır mısın|açıklar mısın)\b/i   // soru kalıpları
+    ];
+    
+    return questionPatterns.some(pattern => pattern.test(text.trim()));
+  }
+}
+
 // 📚 FEW-SHOT EXAMPLES FOR BETTER PROMPTING
 const MCQ_FEW_SHOT_EXAMPLES = `
 🔤 ÇOKTAN SEÇMELİ SORU ÖRNEKLERİ:
@@ -161,23 +299,55 @@ KURUMSALLASMA:\n
 
 // HIZLI DEGERLENDIRME FONKSIYONU
 function quickEvaluateAnswer(question: any, userAnswer: string, selectedOption: string | null) {
+  console.log('🔍 quickEvaluateAnswer DEBUG:', {
+    questionId: question?.id,
+    questionType: question?.type,
+    questionCorrect: question?.correct,
+    userAnswer: userAnswer,
+    userAnswerType: typeof userAnswer,
+    userAnswerLength: userAnswer?.length
+  });
+  
+  // Null/undefined check ekle
+  if (!question || !userAnswer || typeof userAnswer !== 'string') {
+    console.log('❌ quickEvaluateAnswer: Invalid input detected');
+    return {
+      isCorrect: false,
+      score: 0,
+      points: 0,
+      confidence: 0.9,
+      explanation: 'Geçersiz cevap'
+    };
+  }
+  
+  // Boş string check
+  if (userAnswer.trim() === '') {
+    return {
+      isCorrect: false,
+      score: 0,
+      points: 0,
+      confidence: 0.9,
+      explanation: 'Boş cevap'
+    };
+  }
+  
   const answer = userAnswer.toLowerCase().trim();
   
   if (question.type === 'mcq') {
     // Çoktan seçmeli için hızlı kontrol
     const correctOption = question.correctAnswer;
-    if (selectedOption === correctOption || answer.includes(correctOption.toLowerCase())) {
-      return { isCorrect: true, points: 100, confidence: 0.9, explanation: "Doğru seçenek" };
+    if (correctOption && (selectedOption === correctOption || answer.includes(correctOption.toLowerCase()))) {
+      return { isCorrect: true, score: 100, points: 100, confidence: 0.9, explanation: "Doğru seçenek" };
     }
-    return { isCorrect: false, points: 0, confidence: 0.8, explanation: "Yanlış seçenek" };
+    return { isCorrect: false, score: 0, points: 0, confidence: 0.8, explanation: "Yanlış seçenek" };
   }
   
   // Açık uçlu için basit kontrol
   if (question.correctAnswer && answer.includes(question.correctAnswer.toString().toLowerCase())) {
-    return { isCorrect: true, points: 100, confidence: 0.8, explanation: "Doğru cevap" };
+    return { isCorrect: true, score: 100, points: 100, confidence: 0.8, explanation: "Doğru cevap" };
   }
   
-  return { isCorrect: false, points: 0, confidence: 0.5, explanation: "Belirsiz cevap" };
+  return { isCorrect: false, score: 0, points: 0, confidence: 0.5, explanation: "Belirsiz cevap" };
 }
 
 // IKI KATMANLI HIBRIT DEGERLENDIRME SISTEMI
@@ -447,11 +617,14 @@ function analyzeUserIntent(text: string): {
   const answerPatterns = [
     /\b\d+\s*(milyon|bin|yüzde|%)\b/i, // Sayı + birim
     /\b(bir|iki|üç|dört|beş|altı|yedi|sekiz|dokuz|on)\s*(milyon|bin|yüzde|kategori)\b/i, // Sözel sayı + birim
-    /\b[abcd]\s*(şık|seçenek)\b/i, // Şık harfleri + açıklama
-    /\b(temel|orta|ileri)\s*(seviye)\b/i, // Seviye cevapları
+    /\b[abcd]\s*(şık|şıkkı|seçenek)\b/i, // Şık harfleri + açıklama (şıkkı eklendi)
+    /\b(A|B|C|D)\s*\)/i, // A), B) formatı
+    /\b(birinci|ikinci|üçüncü|dördüncü)\s*(şık|seçenek)\b/i, // sözel şık ifadeleri
+    /\b(temel|orta|ileri)(\s*(seviye))?\b/i, // Seviye cevapları (seviye kelimesi opsiyonel)
     /^\s*[abcd]\s*$/i, // Sadece harf
     /^\s*\d+\s*$/i, // Sadece sayı
-    /^\s*(yüzde|%)\s*\d+\s*$/i // Yüzde ifadeleri
+    /^\s*(yüzde|%)\s*\d+\s*$/i, // Yüzde ifadeleri
+    /\b(doğru|yanlış|evet|hayır)\b/i // basit cevaplar
   ];
   
   for (const pattern of answerPatterns) {
@@ -703,6 +876,52 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
     }
 
+    // SANITY CHECK - AI kararını doğrula
+    const gameState = getCurrentGameState(sessionId);
+    const sanityResult = SanityCheckManager.validateToolCall(tool, parameters, gameState);
+    
+    if (!sanityResult.valid) {
+      console.log('🚫 Sanity check failed:', sanityResult.reason);
+      
+      // Override varsa yeni tool çağır
+      if (sanityResult.override) {
+        console.log(`🔄 Tool override: ${tool} → ${sanityResult.override}`);
+        
+        // Yeni tool'u çağır
+        const overrideResult = await executeToolSafely(sanityResult.override, parameters, sessionId);
+        
+        return NextResponse.json({
+          ...overrideResult,
+          message: sanityResult.message,
+          originalTool: tool,
+          overriddenTo: sanityResult.override,
+          _meta: {
+            sanityCheckOverride: true,
+            reason: sanityResult.reason,
+            executionTime: Date.now() - startTime,
+            timestamp: Date.now(),
+            sessionId
+          }
+        });
+      } else {
+        // Override yok, hata mesajı döndür
+        return NextResponse.json({
+          success: false,
+          message: sanityResult.message,
+          reason: sanityResult.reason,
+          _meta: {
+            sanityCheckRejected: true,
+            originalTool: tool,
+            executionTime: Date.now() - startTime,
+            timestamp: Date.now(),
+            sessionId
+          }
+        });
+      }
+    }
+    
+    console.log('✅ Sanity check passed, proceeding with original tool');
+
     // 🧠 INTENT ANALİZİ - KRİTİK KONTROL
     if (tool === 'grade_answer' && (parameters.transcript || parameters.userAnswer)) {
       const userText = parameters.transcript || parameters.userAnswer || '';
@@ -867,27 +1086,27 @@ export async function POST(req: NextRequest) {
     
     switch (tool) {
       case 'start_quiz':
-        result = await executeWithTimeout(handleStartQuiz(state, parameters), 5000, tool);
+        result = await executeWithTimeout(handleStartQuiz(state, parameters), TOOL_TIMEOUTS.start_quiz, tool);
         break;
         
       case 'get_question':
-        result = await executeWithTimeout(handleGetQuestion(state), 3000, tool);
+        result = await executeWithTimeout(handleGetQuestion(state), TOOL_TIMEOUTS.get_question, tool);
         break;
         
       case 'grade_answer':
-        result = await executeWithTimeout(handleGradeAnswer(state, parameters), 10000, tool); // 10 saniye timeout
+        result = await executeWithTimeout(handleGradeAnswer(state, parameters), TOOL_TIMEOUTS.grade_answer, tool);
         break;
         
       case 'next_question':
-        result = await executeWithTimeout(handleNextQuestion(state), 3000, tool);
+        result = await executeWithTimeout(handleNextQuestion(state), TOOL_TIMEOUTS.next_question, tool);
         break;
         
       case 'answer_user_question':
-        result = await executeWithTimeout(handleUserQuestion(parameters), 5000, tool);
+        result = await executeWithTimeout(handleUserQuestion(parameters), TOOL_TIMEOUTS.answer_user_question, tool);
         break;
         
       case 'end_quiz':
-        result = await executeWithTimeout(handleEndQuiz(state), 3000, tool);
+        result = await executeWithTimeout(handleEndQuiz(state), TOOL_TIMEOUTS.end_quiz, tool);
         break;
         
       default:
@@ -916,16 +1135,40 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json(response);
 
-  } catch (error) {
-    console.error('Tool execution error:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: 'Tool çalıştırılırken hata oluştu',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    console.error('🚨 Tool execution error:', error);
+    
+    // Specific error handling
+    if (error instanceof TypeError) {
+      return NextResponse.json({
+        success: false,
+        message: 'Veri işleme hatası',
+        error: 'TYPE_ERROR'
+      }, { status: 400 });
+    }
+    
+    if (error.message?.includes('timeout')) {
+      return NextResponse.json({
+        success: false,
+        message: 'İşlem zaman aşımına uğradı, lütfen tekrar deneyin',
+        error: 'TIMEOUT'
+      }, { status: 408 });
+    }
+    
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({
+        success: false,
+        message: 'Geçersiz veri formatı',
+        error: 'SYNTAX_ERROR'
+      }, { status: 400 });
+    }
+    
+    // Generic error
+    return NextResponse.json({
+      success: false,
+      message: 'Tool çalıştırılırken hata oluştu',
+      error: error instanceof Error ? error.message : 'INTERNAL_ERROR'
+    }, { status: 500 });
   }
 }
 
@@ -1414,6 +1657,76 @@ async function handleEndQuiz(state: GameState): Promise<ToolCallResult> {
       success: false,
       message: "Yarışma bitirilirken hata oluştu"
     };
+  }
+}
+
+// Helper functions for Sanity Check
+function getCurrentGameState(sessionId: string) {
+  const state = gameStates.get(sessionId);
+  if (!state) {
+    return {
+      quizStarted: false,
+      hasActiveQuestion: false,
+      currentQuestion: null,
+      status: 'waiting'
+    };
+  }
+  
+  return {
+    quizStarted: state.status !== 'waiting',
+    hasActiveQuestion: state.currentQuestionIndex >= 0 && state.currentQuestionIndex < state.questionsData.length,
+    currentQuestion: state.questionsData[state.currentQuestionIndex] || null,
+    status: state.status
+  };
+}
+
+async function executeToolSafely(toolName: string, params: any, sessionId: string) {
+  // State'i al veya oluştur
+  if (!gameStates.has(sessionId)) {
+    // İlk kez oluşturuluyorsa questions'ları yükle
+    const questionsPath = path.join(process.cwd(), 'data', 'questions.json');
+    let questionsData: Question[] = [];
+    try {
+      questionsData = await getCachedFile(
+        questionsPath,
+        (data) => JSON.parse(data) as Question[]
+      );
+    } catch (error) {
+      console.error('Error loading questions for new session:', error);
+    }
+
+    gameStates.set(sessionId, {
+      sessionId,
+      participant: null,
+      currentQuestionIndex: 0,
+      totalScore: 0,
+      questionsData: questionsData,
+      answers: [],
+      status: 'waiting',
+      startTime: null,
+      endTime: null,
+      lastActivity: Date.now()
+    });
+  }
+
+  const state = gameStates.get(sessionId)!;
+  state.lastActivity = Date.now();
+
+  switch (toolName) {
+    case 'start_quiz':
+      return await handleStartQuiz(state, params);
+    case 'get_question':
+      return await handleGetQuestion(state);
+    case 'grade_answer':
+      return await handleGradeAnswer(state, params);
+    case 'next_question':
+      return await handleNextQuestion(state);
+    case 'answer_user_question':
+      return await handleUserQuestion(params);
+    case 'end_quiz':
+      return await handleEndQuiz(state);
+    default:
+      return { success: false, message: 'Bilinmeyen araç' };
   }
 }
 

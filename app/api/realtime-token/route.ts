@@ -38,7 +38,6 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: REALTIME_CONFIG.model,
         temperature: REALTIME_CONFIG.temperature,
-        seed: REALTIME_CONFIG.seed,
         max_response_output_tokens: REALTIME_CONFIG.max_response_output_tokens,
         voice: REALTIME_CONFIG.voice,
         instructions: `${MAIN_SYSTEM_PROMPT}

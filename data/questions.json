@@ -20,19 +20,11 @@
     },
     "points": 10,
     "miniCorpus": "Doğru cevap yüzde 36,08. Sıfır Atık Projesi 7 yılda geri dönüşüm oranını neredeyse 3 katına çıkardı. Proje Cumhurbaşkanı eşi Emine Erdoğan Hanımefendi'nin himayesinde yürütülüyor.",
-<<<<<<< HEAD
     "isAnswered": true,
-    "userAnswer": "köpek gibi davranmıyor ya bir gün var ya isyan edecek hiç bir şey yapmayacağım öyle mi? bir gün isyan edecek misin? mührü hiç dinlemeyeceksin",
-    "userScore": 0,
-    "attemptCount": 4,
-    "lastAttemptTime": "2025-09-05T14:48:37.075Z",
-=======
-    "isAnswered": false,
-    "userAnswer": null,
-    "userScore": null,
-    "attemptCount": 0,
-    "lastAttemptTime": null,
->>>>>>> 193d71a (ön yüz değişti)
+    "userAnswer": "yüzde otuz beş",
+    "userScore": 9,
+    "attemptCount": 1,
+    "lastAttemptTime": "2025-09-08T17:37:44.000Z",
     "selectedOption": null
   },
   {
@@ -48,21 +40,12 @@
     "correct": "B",
     "points": 10,
     "miniCorpus": "Sıfır Atık sisteminde 6 ana kategori bulunur: Plastik (sarı kutu), Metal (gri kutu), Kağıt (mavi kutu), Cam (yeşil kutu), Biyobozunur/Organik (kahverengi kutu) ve Diğer Atıklar (gri kutu). Bu renk kodlaması sistemi ile ayrıştırma kolaylaştırılır.",
-<<<<<<< HEAD
-    "isAnswered": true,
-    "userAnswer": "Thank you very much.",
-    "selectedOption": null,
-    "userScore": 0,
-    "attemptCount": 1,
-    "lastAttemptTime": "2025-09-05T14:48:51.658Z"
-=======
     "isAnswered": false,
     "userAnswer": null,
     "selectedOption": null,
     "userScore": null,
     "attemptCount": 0,
     "lastAttemptTime": null
->>>>>>> 193d71a (ön yüz değişti)
   },
   {
     "id": "q3",

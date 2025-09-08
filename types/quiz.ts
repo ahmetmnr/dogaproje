@@ -12,20 +12,40 @@ export interface Question {
   options?: string[];
   correct?: string;
   openEval?: {
-    keywordsAny: string[];
+    keywordsAny?: string[];
     regexAny?: string[];
-    minHits: number;
+    minHits?: number;
   };
   points: number;
-  miniCorpus: string;
+  miniCorpus?: string;
   
-  // Yeni alanlar
+  // Redis'te saklanacak kullanıcı-specific alanlar
   isAnswered: boolean;
   userAnswer: string | null;
-  selectedOption?: string | null; // MCQ için
   userScore: number | null;
   attemptCount: number;
   lastAttemptTime: string | null;
+  selectedOption: string | null;
+}
+
+export interface UserAnswer {
+  questionId: string;
+  userAnswer: string | null;
+  userScore: number | null;
+  attemptCount: number;
+  lastAttemptTime: string | null;
+  selectedOption: string | null;
+  isAnswered: boolean;
+}
+
+export interface UserSession {
+  userId: string;
+  sessionId: string;
+  currentQuestionIndex: number;
+  startTime: number;
+  isCompleted: boolean;
+  totalScore: number;
+  answers: Record<string, UserAnswer>; // questionId -> UserAnswer
 }
 
 // Yeni evaluation result interface

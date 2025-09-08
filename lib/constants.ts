@@ -1,7 +1,6 @@
 export const REALTIME_CONFIG = {
   model: 'gpt-4o-realtime-preview',
-  temperature: 0.2,
-  seed: 12345,
+  temperature: 0.6,
   voice: 'alloy',
   max_response_output_tokens: 4096,
   modalities: ['text', 'audio'],
