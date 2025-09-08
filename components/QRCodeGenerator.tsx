@@ -61,7 +61,8 @@ export default function QRCodeGenerator({
   // Katılımcı sayısını güncelle
   const updateParticipantCount = useCallback(async () => {
     try {
-      const count = await redisSessionManager.getActiveParticipantCount();
+      const health = await redisSessionManager.healthCheck();
+      const count = health.activeSessions;
       setParticipantCount(count);
       onParticipantCountChange(count);
     } catch (error) {
