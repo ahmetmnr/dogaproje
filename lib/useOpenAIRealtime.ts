@@ -8,6 +8,7 @@ import { AudioEnvironmentManager, AudioEnvironmentConfig } from './AudioEnvironm
 import { redisSessionManager, SessionData } from './RedisSessionManager';
 import { v4 as uuidv4 } from 'uuid';
 import { DebugLogger, RealtimeAPILogger, VADLogger, GameFlowLogger } from './DebugLogger';
+import { systemPrompt } from './prompts';
 
 interface UseOpenAIRealtimeProps {
   userInfo: UserInfo;
@@ -142,10 +143,13 @@ class WebRTCClient {
       const audioConstraints = this.config.audioManager?.getAudioConstraints() || {
         echoCancellation: true,
         noiseSuppression: true,
-        autoGainControl: true
+        autoGainControl: true,
+        sampleRate: 16000,  // OpenAI Realtime API için 16kHz PCM16
+        channelCount: 1     // Mono
       };
       
       console.log('🎤 Using audio constraints:', audioConstraints);
+      console.log('🎵 Sample Rate: 16000 Hz (PCM16 format)');
       
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: audioConstraints
@@ -153,6 +157,21 @@ class WebRTCClient {
 
       stream.getTracks().forEach(track => {
         this.pc?.addTrack(track, stream);
+      });
+
+      // Audio codec tercihlerini ayarla (PCM16 için optimize)
+      const transceivers = this.pc?.getTransceivers();
+      transceivers?.forEach(transceiver => {
+        if (transceiver.sender.track?.kind === 'audio') {
+          const params = transceiver.sender.getParameters();
+          if (params.encodings) {
+            params.encodings.forEach(encoding => {
+              // PCM16 için optimize edilmiş ayarlar
+              encoding.maxBitrate = 128000; // 128 kbps (16kHz * 16bit * 1 kanal için yeterli)
+            });
+            transceiver.sender.setParameters(params);
+          }
+        }
       });
 
       // Create offer and connect to OpenAI
@@ -350,6 +369,10 @@ export function useOpenAIRealtime({
     
     console.log(`🔄 Reconnection attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts}`);
     
+    // Conversation history'yi koru
+    const conversationHistory = stateManagerRef.current?.getConversationHistory() || [];
+    console.log(`📚 Preserving ${conversationHistory.length} conversation items during reconnect`);
+    
     // Mevcut bağlantıyı temizle
     if (clientRef.current) {
       clientRef.current.disconnect();
@@ -360,6 +383,17 @@ export function useOpenAIRealtime({
     setTimeout(async () => {
       try {
         await connect();
+        
+        // Reconnect başarılı olduğunda conversation history'yi geri yükle
+        if (stateManagerRef.current && conversationHistory.length > 0) {
+          console.log(`🔄 Restoring ${conversationHistory.length} conversation items after reconnect`);
+          // History'yi temizle ve yeniden yükle
+          stateManagerRef.current.clearConversationHistory();
+          conversationHistory.forEach(item => {
+            stateManagerRef.current?.addConversationItem(item.type, item.content, item.metadata);
+          });
+        }
+        
         reconnectAttemptsRef.current = 0; // Başarılı bağlantı sonrası sayacı sıfırla
         setIsReconnecting(false);
       } catch (error) {
@@ -485,40 +519,26 @@ export function useOpenAIRealtime({
           };
           
           console.log('🎵 Using audio config:', audioConfig?.environmentType, turnDetectionConfig);
+          console.log('🎤 Audio Format: PCM16 (16kHz, 16-bit, Mono)');
+          
+          // Conversation history'yi al
+          const conversationItems = stateManagerRef.current?.getRealtimeConversationItems() || [];
+          console.log(`📚 Sending ${conversationItems.length} conversation items to Realtime API`);
           
           client.sendEvent({
             type: 'session.update',
             session: {
               modalities: ['text', 'audio'],
-              instructions: `Sen DOĞA'sın (Doğal Oluşum Geri dönüşüm Asistanı). Emine Erdoğan Hanımefendi'nin himayesindeki Sıfır Atık Projesi'ni tanıtan sesli bilgi yarışması yürütüyorsun.
-
-KİŞİLİĞİN:
-- Sıcak, samimi ve enerjik
-- Çevre konusunda tutkulu ve bilgili
-- Katılımcıları motive eden ve cesaretlendiren
-- Türkiye'nin çevre başarılarıyla gurur duyan
-
-AKIŞ KURALLARI:
-1. start_quiz çağrıldığında: Hoş geldin mesajı + Sıfır Atık tanıtımı (1-2 dakika) + get_question çağır
-2. get_question çağrıldığında: Soruyu oku, seçenekleri varsa oku, kullanıcıdan cevap bekle
-3. Kullanıcı cevap verdiğinde: grade_answer çağır, sonucu açıkla, MiniCorpus bilgisini ver, next_question çağır
-4. Her tool çağrısından sonra MUTLAKA konuş ve etkileşimi sürdür
-5. Sessiz kalma, sürekli akışı koru
-6. Kullanıcı soru sorarsa answer_user_question çağır, cevapla, yarışmaya dön
-
-KONUŞMA STİLİ:
-- "Harika!", "Mükemmel!", "Süper!" gibi pozitif ifadeler kullan
-- "Siz de..." diyerek kişiselleştir
-- Başarı rakamlarını vurgula
-- Umut verici ve motive edici ol
+              // PCM16 format ayarları
+              input_audio_format: 'pcm16',
+              output_audio_format: 'pcm16',
+              instructions: `${systemPrompt}
 
 ORTAM AYARLARI:
 Mevcut ortam: ${audioConfig?.environmentType || 'normal'}
 Gürültü seviyesi: ${audioConfig?.backgroundNoiseLevel || 'orta'}
 VAD eşiği: ${turnDetectionConfig.threshold}`,
               voice: 'alloy',
-              input_audio_format: 'pcm16',
-              output_audio_format: 'pcm16',
               input_audio_transcription: {
                 model: 'whisper-1'
               },
@@ -596,7 +616,9 @@ VAD eşiği: ${turnDetectionConfig.threshold}`,
                     additionalProperties: false
                   }
                 }
-              ]
+              ],
+              // Conversation history'yi ekle (eğer varsa)
+              ...(conversationItems.length > 0 && { conversation: conversationItems })
             }
           });
 
@@ -611,6 +633,11 @@ VAD eşiği: ${turnDetectionConfig.threshold}`,
         onEventReceived: async (event) => {
           console.log('📨 Received event:', event.type, event);
           
+          // Transcript ile ilgili event'leri özel olarak logla
+          if (event.type.includes('transcription') || event.type.includes('audio')) {
+            console.log('🎯 Audio/Transcript Event:', JSON.stringify(event, null, 2));
+          }
+          
           // Response tracking for conflict prevention
           if (event.type === 'response.created') {
             activeResponseRef.current = event.response?.id || null;
@@ -624,12 +651,29 @@ VAD eşiği: ${turnDetectionConfig.threshold}`,
             case 'conversation.item.input_audio_transcription.completed':
               if (event.transcript) {
                 setTranscript(event.transcript);
-                console.log('📝 User said:', event.transcript);
+                
+                // KULLANICI SESİ TRANSCRİPT - BİREBİR YAZDIRMA
+                console.log('🎤 KULLANICI SÖYLEDİ:', event.transcript);
+                console.log('🔊 Transcript (birebir):', JSON.stringify(event.transcript));
+                console.log('📊 Güvenilirlik:', event.confidence || 'N/A');
+                console.log('---');
                 
                 // Update unified state with transcript
                 if (stateManagerRef.current) {
                   stateManagerRef.current.updateTranscript(event.transcript, event.confidence || 1.0);
+                  // Conversation history'ye kullanıcı mesajını ekle
+                  stateManagerRef.current.addConversationItem('user', event.transcript, {
+                    confidence: event.confidence,
+                    itemId: event.item_id
+                  });
                 }
+              }
+              break;
+              
+            case 'conversation.item.input_audio_transcription.delta':
+              // Kısmi transcript (canlı yazım)
+              if (event.delta) {
+                console.log('📝 Kısmi transcript:', event.delta);
               }
               break;
               
@@ -637,6 +681,15 @@ VAD eşiği: ${turnDetectionConfig.threshold}`,
               if (event.name && event.arguments) {
                 try {
                   const args = JSON.parse(event.arguments);
+                  
+                  // Function call'ı conversation history'ye ekle
+                  if (stateManagerRef.current) {
+                    stateManagerRef.current.addConversationItem('function_call', event.arguments, {
+                      functionName: event.name,
+                      callId: event.call_id
+                    });
+                  }
+                  
                   await handleToolCall(event.name, args, event.call_id);
                 } catch (error) {
                   console.error('Error parsing function arguments:', error);
@@ -661,6 +714,16 @@ VAD eşiği: ${turnDetectionConfig.threshold}`,
                 if (context.phase === 'question_reading') {
                   stateManagerRef.current.updateGamePhase('waiting_answer');
                 }
+              }
+              break;
+              
+            case 'response.text.done':
+              // Assistant'ın text response'ını conversation history'ye ekle
+              if (event.text && stateManagerRef.current) {
+                stateManagerRef.current.addConversationItem('assistant', event.text, {
+                  responseId: event.response_id
+                });
+                console.log('💬 Assistant response added to history:', event.text.substring(0, 100) + '...');
               }
               break;
               
@@ -828,6 +891,14 @@ VAD eşiği: ${turnDetectionConfig.threshold}`,
           }
         });
         
+        // Function result'ı conversation history'ye ekle
+        if (stateManagerRef.current) {
+          stateManagerRef.current.addConversationItem('function_result', JSON.stringify(result), {
+            callId: callId,
+            toolName: toolName
+          });
+        }
+        
         // Response conflict prevention - sadece aktif response yoksa oluştur
         const createResponseSafely = () => {
           if (!activeResponseRef.current && clientRef.current) {
@@ -938,27 +1009,7 @@ VAD eşiği: ${turnDetectionConfig.threshold}`,
           type: 'session.update',
           session: {
             turn_detection: newTurnDetectionConfig,
-            instructions: `Sen DOĞA'sın (Doğal Oluşum Geri dönüşüm Asistanı). Emine Erdoğan Hanımefendi'nin himayesindeki Sıfır Atık Projesi'ni tanıtan sesli bilgi yarışması yürütüyorsun.
-
-KİŞİLİĞİN:
-- Sıcak, samimi ve enerjik
-- Çevre konusunda tutkulu ve bilgili
-- Katılımcıları motive eden ve cesaretlendiren
-- Türkiye'nin çevre başarılarıyla gurur duyan
-
-AKIŞ KURALLARI:
-1. start_quiz çağrıldığında: Hoş geldin mesajı + Sıfır Atık tanıtımı (1-2 dakika) + get_question çağır
-2. get_question çağrıldığında: Soruyu oku, seçenekleri varsa oku, kullanıcıdan cevap bekle
-3. Kullanıcı cevap verdiğinde: grade_answer çağır, sonucu açıkla, MiniCorpus bilgisini ver, next_question çağır
-4. Her tool çağrısından sonra MUTLAKA konuş ve etkileşimi sürdür
-5. Sessiz kalma, sürekli akışı koru
-6. Kullanıcı soru sorarsa answer_user_question çağır, cevapla, yarışmaya dön
-
-KONUŞMA STİLİ:
-- "Harika!", "Mükemmel!", "Süper!" gibi pozitif ifadeler kullan
-- "Siz de..." diyerek kişiselleştir
-- Başarı rakamlarını vurgula
-- Umut verici ve motive edici ol
+instructions: `${systemPrompt}
 
 ORTAM AYARLARI:
 Mevcut ortam: ${newAudioConfig.environmentType}

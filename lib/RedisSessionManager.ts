@@ -1,5 +1,8 @@
 import Redis from 'ioredis';
 import { REDIS_KEYS, SESSION_TIMEOUTS } from './constants';
+import { Question } from '@/types/quiz';
+import { promises as fs } from 'fs';
+import path from 'path';
 
 // Session veri yapısı
 export interface SessionData {
@@ -24,6 +27,7 @@ export interface SessionData {
     timestamp: Date;
   }>;
   connectionId?: string; // WebSocket connection ID
+  questions: Question[]; // <<-- EKLENDİ: Her kullanıcının kendi soru kopyası
 }
 
 // Leaderboard entry yapısı
@@ -84,6 +88,23 @@ export class RedisSessionManager {
       throw new Error('Redis connection not available');
     }
 
+    // 1. Ana soru şablonunu dosyadan OKU
+    const questionsPath = path.join(process.cwd(), 'data', 'questions.json');
+    const questionsTemplateString = await fs.readFile(questionsPath, 'utf-8');
+    const questionsTemplate: Question[] = JSON.parse(questionsTemplateString);
+
+    // 2. Her kullanıcı için şablondan BAĞIMSIZ BİR KOPYA oluştur
+    // Bu, her kullanıcının kendi cevaplarını ve ilerlemesini tutmasını sağlar
+    const userQuestions: Question[] = questionsTemplate.map(q => ({
+        ...q,
+        isAnswered: false,
+        userAnswer: "",
+        selectedOption: null,
+        userScore: 0,
+        attemptCount: 0,
+        lastAttemptTime: null
+    }));
+
     const sessionData: SessionData = {
       participantId,
       userInfo,
@@ -94,7 +115,8 @@ export class RedisSessionManager {
       lastActivity: new Date(),
       gameState: 'waiting',
       answers: [],
-      connectionId
+      connectionId,
+      questions: userQuestions // <<-- KOPYALANAN SORULARI OTURUMA EKLE
     };
     
     try {
@@ -105,7 +127,7 @@ export class RedisSessionManager {
         JSON.stringify(sessionData)
       );
       
-      console.log(`✅ Session created for participant: ${participantId}`);
+      console.log(`✅ Session created for ${participantId} with a fresh copy of ${userQuestions.length} questions.`);
       return sessionData;
     } catch (error) {
       console.error('❌ Error creating session:', error);

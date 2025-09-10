@@ -75,7 +75,7 @@ export const DEFAULT_AUDIO_CONFIG: AudioEnvironmentConfig = {
   postSpeechPadding: 200,
   microphoneSensitivity: 0.8,
   noiseSuppressionLevel: 5,
-  audioQuality: '16kHz',
+  audioQuality: '16kHz', // OpenAI Realtime API PCM16 için zorunlu
   echoCancellation: true,
   autoGainControl: true,
   environmentType: 'normal',
@@ -254,8 +254,9 @@ export class AudioEnvironmentManager {
       echoCancellation: this.config.echoCancellation,
       noiseSuppression: this.config.noiseSuppressionLevel > 0,
       autoGainControl: this.config.autoGainControl,
-      sampleRate: sampleRate,
-      channelCount: 1,
+      sampleRate: sampleRate, // Varsayılan 16000 Hz
+      channelCount: 1, // Mono (PCM16 için gerekli)
+      sampleSize: 16, // 16-bit PCM
       // Gelişmiş ayarlar
       ...(this.config.noiseSuppressionLevel > 5 && {
         noiseSuppression: { exact: true }

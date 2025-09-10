@@ -239,6 +239,69 @@ export class UnifiedStateManager extends EventEmitter {
     }
   }
   
+  // Conversation History Management
+  private conversationHistory: Array<{
+    type: 'user' | 'assistant' | 'function_call' | 'function_result';
+    content: string;
+    timestamp: number;
+    metadata?: any;
+  }> = [];
+
+  addConversationItem(type: 'user' | 'assistant' | 'function_call' | 'function_result', content: string, metadata?: any) {
+    this.conversationHistory.push({
+      type,
+      content,
+      timestamp: Date.now(),
+      metadata
+    });
+    
+    console.log(`💬 Conversation item added: ${type} - "${content.substring(0, 50)}..."`);
+  }
+
+  getConversationHistory() {
+    return [...this.conversationHistory];
+  }
+
+  // OpenAI Realtime API formatında conversation items döndür
+  getRealtimeConversationItems() {
+    return this.conversationHistory.map((item, index) => {
+      switch (item.type) {
+        case 'user':
+          return {
+            type: 'message',
+            role: 'user',
+            content: [{ type: 'input_text', text: item.content }]
+          };
+        case 'assistant':
+          return {
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'text', text: item.content }]
+          };
+        case 'function_call':
+          return {
+            type: 'function_call',
+            name: item.metadata?.functionName || 'unknown',
+            call_id: item.metadata?.callId || `call_${index}`,
+            arguments: item.content
+          };
+        case 'function_result':
+          return {
+            type: 'function_call_output',
+            call_id: item.metadata?.callId || `call_${index}`,
+            output: item.content
+          };
+        default:
+          return null;
+      }
+    }).filter(Boolean);
+  }
+
+  clearConversationHistory() {
+    this.conversationHistory = [];
+    console.log('🧹 Conversation history cleared');
+  }
+
   // Tool Call Management
   addPendingToolCall(toolName: string) {
     if (!this.state.pendingToolCalls.includes(toolName)) {

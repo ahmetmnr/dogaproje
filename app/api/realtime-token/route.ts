@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { REALTIME_CONFIG } from '@/lib/constants';
-import { MAIN_SYSTEM_PROMPT, ZERO_WASTE_INFO, INTENT_ANALYSIS_EXAMPLES } from '@/lib/prompts';
+import { systemPrompt } from '@/lib/prompts';
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,11 +40,7 @@ export async function POST(req: NextRequest) {
         temperature: REALTIME_CONFIG.temperature,
         max_response_output_tokens: REALTIME_CONFIG.max_response_output_tokens,
         voice: REALTIME_CONFIG.voice,
-        instructions: `${MAIN_SYSTEM_PROMPT}
-
-${INTENT_ANALYSIS_EXAMPLES}
-
-${ZERO_WASTE_INFO}`,
+        instructions: systemPrompt,
 
         tools: [
           {
@@ -75,16 +71,39 @@ ${ZERO_WASTE_INFO}`,
           {
             type: "function",
             name: "grade_answer",
-            description: "Kullanıcının yarışma sorusuna verdiği cevabı değerlendirir ve puanlar. Doğru/yanlış kontrolü yapar, puan hesaplar ve açıklama verir. Sadece kullanıcı bir yarışma sorusuna cevap verdiğinde kullanılır. Serbest sorular için kullanılmaz.",
+            description: "Kullanıcının yarışma sorusuna verdiği cevabı, önceden yapılmış bir değerlendirme sonucuna göre kaydeder ve kullanıcıya geri bildirim verir.",
             parameters: {
               type: "object",
               properties: {
+                evaluation: {
+                  type: "object",
+                  description: "AI tarafından yapılmış cevap değerlendirmesi",
+                  properties: {
+                    isCorrect: {
+                      type: "boolean",
+                      description: "Cevabın doğru olup olmadığı"
+                    },
+                    points: {
+                      type: "number",
+                      description: "0-100 arası yüzde puan"
+                    },
+                    explanation: {
+                      type: "string",
+                      description: "Kullanıcıya verilecek kısa açıklama"
+                    },
+                    reasoning: {
+                      type: "string",
+                      description: "Puanlamanın mantığı"
+                    }
+                  },
+                  required: ["isCorrect", "points", "explanation", "reasoning"]
+                },
                 transcript: {
                   type: "string",
                   description: "Kullanıcının sesli cevabının metni"
                 }
               },
-              required: ["transcript"]
+              required: ["evaluation", "transcript"]
             }
           },
           {
